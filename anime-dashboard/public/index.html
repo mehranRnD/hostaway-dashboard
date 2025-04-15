@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HostAway Dashboard</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  </head>
+  <body>
+    <div class="dashboard-container">
+      <div class="header">
+        <h1>HostAway Dashboard</h1>
+        <p>Your reservations at a glance</p>
+      </div>
+
+      <!-- Top Dashboard Section -->
+      <div class="stats-grid">
+        <div class="stat-card" id="totalReservations">
+          <h2>Total Reservations</h2>
+          <div class="value">0</div>
+        </div>
+        <div class="stat-card" id="upcomingReservations">
+          <h2>Upcoming</h2>
+          <div class="value">0</div>
+        </div>
+        <div class="stat-card" id="completedReservations">
+          <h2>Completed</h2>
+          <div class="value">0</div>
+        </div>
+      </div>
+
+      <!-- Main Body Sections -->
+      <div class="main-body">
+        <div class="section" id="actualCheckIns">
+          <h2>Actual Check-ins</h2>
+          <div class="reservations-grid" id="actualCheckInsList">
+            <!-- Actual check-ins will be added here -->
+          </div>
+        </div>
+
+        <div class="section" id="actualCheckOuts">
+          <h2>Actual Check-outs</h2>
+          <div class="reservations-grid" id="actualCheckOutsList">
+            <!-- Actual check-outs will be added here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Expected Sections -->
+      <div class="expected-sections">
+        <div class="section" id="expectedCheckIns">
+          <h2>Expected Check-ins</h2>
+          <div class="reservations-grid" id="expectedCheckInsList">
+            <!-- Expected check-ins will be added here -->
+          </div>
+        </div>
+
+        <div class="section" id="expectedCheckOuts">
+          <h2>Expected Check-outs</h2>
+          <div class="reservations-grid" id="expectedCheckOutsList">
+            <!-- Expected check-outs will be added here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Staying Guests Section -->
+      <div class="section" id="stayingGuests">
+        <h2>Staying Guests</h2>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <h3>Total Staying</h3>
+            <div class="value" id="totalStaying">0</div>
+          </div>
+          <div class="stat-card">
+            <h3>Average Stay</h3>
+            <div class="value" id="avgStay">0</div>
+            <div class="label">Nights</div>
+          </div>
+        </div>
+
+        <div class="guest-list" id="stayingGuestList">
+          <div class="guest-header">
+            <div class="guest-col hostaway-id">Hostaway ID</div>
+            <div class="guest-col name">Guest Name</div>
+            <div class="guest-col listing">Listing ID</div>
+            <div class="guest-col nights">Nights</div>
+            <div class="guest-col duration">Staying Duration</div>
+          </div>
+          <div id="stayingGuestCards"></div>
+        </div>
+      </div>
+
+      <div class="loading" id="loading" style="display: none">
+        <div>Loading reservations...</div>
+      </div>
+
+      <div class="error" id="error" style="display: none">
+        <div>Error loading reservations</div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
