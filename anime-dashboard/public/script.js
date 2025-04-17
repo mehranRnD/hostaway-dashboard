@@ -114,6 +114,10 @@ async function fetchReservations() {
         ),
       }));
 
+    // Find double bookings
+    const doubleBookings = findDoubleBookings(reservations);
+    displayDoubleBookings(doubleBookings);
+
     // Calculate statistics
     const stats = {
       totalStaying: stayingGuests.length,
@@ -142,7 +146,7 @@ async function fetchReservations() {
         .split("T")[0];
       return arrivalDateStr === today;
     });
-    console.log(todayArrivals);
+    // console.log(todayArrivals);
 
     document.querySelector("#totalReservations .value").textContent =
       todayArrivals.length;
@@ -200,7 +204,6 @@ function displayStayingGuests(guests) {
         </div>
       </div>
     `;
-
     container.appendChild(card);
   });
 
@@ -247,11 +250,6 @@ function categorizeReservations(reservations) {
         reservation.status !== "checked_out" &&
         (reservation.status === "new" || reservation.status === "modified")
       ) {
-        console.log("✅ Expected Check-in:", {
-          guest: reservation.guestName,
-          arrivalDate: arrivalDateStr,
-          status: reservation.status,
-        });
         acc.expectedCheckIns.push(reservation);
       }
 
@@ -387,21 +385,30 @@ function createReservationCard(reservation) {
       ? "status-completed"
       : "status-pending");
 
-  const checkInBtn = document.createElement("button");
-  checkInBtn.className = "check-in-btn";
-  checkInBtn.textContent = "Mark Check-in";
-  checkInBtn.onclick = () => handleCheckIn(reservation.id);
-
-  const checkOutBtn = document.createElement("button");
-  checkOutBtn.className = "check-out-btn";
-  checkOutBtn.textContent = "Mark Check-out";
-  checkOutBtn.onclick = () => handleCheckOut(reservation.id);
-
   const arrivalDate = new Date(reservation.arrivalDate);
   const departureDate = new Date(reservation.departureDate);
   const duration = Math.ceil(
     (departureDate - arrivalDate) / (1000 * 60 * 60 * 24)
   );
+
+  // Create buttons based on reservation status
+  let buttonHtml = "";
+
+  if (reservation.status === "expected_checkin") {
+    buttonHtml = `
+      <button class="mark-checkin-btn" onclick="handleCheckIn('${reservation.id}')">Mark Check-in</button>
+      <button class="print-btn" onclick="handlePrint('${reservation.id}')">Print</button>
+    `;
+  } else if (reservation.status === "expected_checkout") {
+    buttonHtml = `
+      <button class="mark-checkout-btn" onclick="handleCheckOut('${reservation.id}')">Mark Check-out</button>
+      <button class="print-btn" onclick="handlePrint('${reservation.id}')">Print</button>
+    `;
+  } else {
+    buttonHtml = `
+      <button class="print-btn" onclick="handlePrint('${reservation.id}')">Print</button>
+    `;
+  }
 
   card.innerHTML = `
     <div class="reservation-header">
@@ -434,8 +441,7 @@ function createReservationCard(reservation) {
       
     </div>
     <div class="reservation-buttons">
-      ${reservation.status !== "checked_in" ? checkInBtn.outerHTML : ""}
-      ${reservation.status !== "checked_out" ? checkOutBtn.outerHTML : ""}
+      ${buttonHtml}
     </div>
   `;
 
@@ -561,12 +567,6 @@ async function fetchAndDisplayListings() {
   }
 }
 
-// Call the function to fetch and display listings
-fetchAndDisplayListings();
-
-// Initialize
-fetchReservations();
-
 // Function to fetch and display reservations for a given date (YYYY-MM-DD)
 async function fetchReservationsByDate(targetDateStr) {
   try {
@@ -582,7 +582,7 @@ async function fetchReservationsByDate(targetDateStr) {
     const data = await response.json();
     const reservations = Array.isArray(data.result) ? data.result : [];
 
-    // 🎯 Only keep reservations with status "new" or "modified"
+    // 🎯 Only keep reservations with status 'new' or 'modified'
     const validStatuses = ["new", "modified"];
     const filteredByStatus = reservations.filter((res) =>
       validStatuses.includes(res.status)
@@ -652,6 +652,27 @@ function displayReservations(reservations, selectedDateStr) {
   const categorized = categorizeReservationsForDate(
     reservations,
     selectedDateStr
+  );
+
+  // Log expected check-ins data
+  console.log(
+    "Expected Check-ins for",
+    selectedDateStr,
+    ":",
+    categorized.expectedCheckIns.map((res) => ({
+      reservationId: res.hostawayReservationId,
+      guestName: res.guestName,
+      arrivalDate: res.arrivalDate,
+      departureDate: res.departureDate,
+      nights: res.nights,
+      address: res.guestAddress,
+      adults: res.adults,
+      children: res.children,
+      contact: res.phone,
+      checkinTime: res.checkInTime,
+      checkoutTime: res.checkOutTime,
+      totalAmount: res.totalPrice,
+    }))
   );
 
   [
@@ -738,6 +759,145 @@ document.addEventListener("dateSelected", (e) => {
   const selectedDate = e.detail.date.toISOString().split("T")[0];
   fetchReservationsByDate(selectedDate);
 });
+
+// Function to find double bookings
+function findDoubleBookings(reservations) {
+  // Return empty array if no reservations or invalid data
+  if (!reservations || !Array.isArray(reservations)) {
+    return [];
+  }
+
+  // Group reservations by listingMapId and date
+  const groupedReservations = {};
+
+  // Process each reservation
+  reservations.forEach((reservation) => {
+    if (!reservation) return;
+
+    // Only consider reservations with status 'new' or 'modified'
+    if (reservation.status !== "new" && reservation.status !== "modified") {
+      return;
+    }
+
+    try {
+      const arrivalDateStr = new Date(reservation.arrivalDate)
+        .toISOString()
+        .split("T")[0];
+      const listingMapId = reservation.listingMapId;
+
+      if (!groupedReservations[listingMapId]) {
+        groupedReservations[listingMapId] = {};
+      }
+
+      if (!groupedReservations[listingMapId][arrivalDateStr]) {
+        groupedReservations[listingMapId][arrivalDateStr] = [];
+      }
+
+      groupedReservations[listingMapId][arrivalDateStr].push(reservation);
+    } catch (error) {
+      console.error("Error processing reservation:", error);
+    }
+  });
+
+  // Find listings with multiple reservations on the same date
+  const doubleBookings = [];
+
+  // Safely iterate over grouped reservations
+  Object.entries(groupedReservations || {}).forEach(([listingMapId, dates]) => {
+    Object.entries(dates || {}).forEach(([date, reservations]) => {
+      if (Array.isArray(reservations) && reservations.length > 1) {
+        doubleBookings.push({
+          listingMapId,
+          date,
+          reservations: reservations.map((res) => ({
+            hostawayReservationId: res?.hostawayReservationId,
+            guestName: res?.guestName,
+            listingMapId: res?.listingMapId,
+            listingName:
+              listingsMap.get(res?.listingMapId) || res?.listingMapId,
+            arrivalDate: res?.arrivalDate,
+            departureDate: res?.departureDate,
+            nights:
+              res?.departureDate && res?.arrivalDate
+                ? Math.ceil(
+                    (new Date(res.departureDate) - new Date(res.arrivalDate)) /
+                      (1000 * 60 * 60 * 24)
+                  )
+                : 0,
+            status: res?.status,
+          })),
+        });
+      }
+    });
+  });
+
+  return doubleBookings;
+}
+
+// Function to display double bookings
+function displayDoubleBookings(doubleBookings) {
+  const container = document.getElementById("doubleBookingsList");
+  container.innerHTML = "";
+
+  if (doubleBookings.length === 0) {
+    const noDoubleBookings = document.createElement("div");
+    noDoubleBookings.className = "no-double-bookings";
+    noDoubleBookings.textContent = "No double bookings found.";
+    container.appendChild(noDoubleBookings);
+    return;
+  }
+
+  doubleBookings.forEach((doubleBooking) => {
+    const card = document.createElement("div");
+    card.className = "double-booking-card";
+
+    const listingName =
+      listingsMap.get(doubleBooking.listingMapId) || doubleBooking.listingMapId;
+
+    card.innerHTML = `
+      <div class="guest-header">
+        <div class="guest-col hostaway-id">Hostaway ID</div>
+        <div class="guest-col name">Guest Name</div>
+        <div class="guest-col listing-name">Listing Name</div>
+        <div class="guest-col nights">Nights</div>
+        <div class="guest-col status">Status</div>
+        <div class="guest-col duration">Staying Duration</div>
+      </div>
+      ${doubleBooking.reservations
+        .map(
+          (res) => `
+        <div class="guest-card">
+          <div class="guest-col hostaway-id">${res.hostawayReservationId}</div>
+          <div class="guest-col name">${res.guestName}</div>
+          <div class="guest-col listing-name">${
+            listingsMap.get(res.listingMapId) || res.listingMapId
+          }</div>
+          <div class="guest-col nights">${res.nights} nights</div>
+          <div class="guest-col status">${res.status || "unknown"}</div>
+          <div class="guest-col duration">
+            <div class="date-pair">
+              <div class="date-label">Arrival:</div>
+              <div class="date-value">${new Date(
+                res.arrivalDate
+              ).toLocaleDateString()}</div>
+            </div>
+            <div class="date-pair">
+              <div class="date-label">Departure:</div>
+              <div class="date-value">${new Date(
+                res.departureDate
+              ).toLocaleDateString()}</div>
+            </div>
+          </div>
+        </div>
+      `
+        )
+        .join("")}
+    `;
+
+    container.appendChild(card);
+  });
+}
+
 // Calendar functionality
 const calendarButton = document.getElementById("calendarButton");
 const calendarDropdown = document.getElementById("calendarDropdown");
@@ -817,11 +977,6 @@ function updateCalendar() {
       dayElement.classList.add("selected");
     }
 
-    // Add event marker if there are events for this day
-    if (hasEvents(day, month, year)) {
-      dayElement.classList.add("has-event");
-    }
-
     // Add click handler for date selection
     dayElement.addEventListener("click", () => {
       selectDate(new Date(year, month, day));
@@ -845,49 +1000,31 @@ function updateCalendar() {
 
 // Select a date
 function selectDate(date) {
-  // Remove selected class from all days
-  document.querySelectorAll(".calendar-day.selected").forEach((day) => {
-    day.classList.remove("selected");
-  });
+  const selectedDateStr = date.toISOString().split("T")[0];
+  const selectedDateText = document.getElementById("selectedDateText");
 
-  // Update selected date
-  selectedDate = date;
-
-  // Add selected class to the clicked date
-  const selectedDay = document.querySelector(
-    `[data-date="${date.toISOString().split("T")[0]}"]`
-  );
-  if (selectedDay) {
-    selectedDay.classList.add("selected");
-  }
-
-  // Update button text
+  // Update the selected date text
   selectedDateText.textContent = date.toLocaleDateString("en-US", {
+    weekday: "long",
     year: "numeric",
     month: "long",
     day: "numeric",
   });
 
-  // Close dropdown
-  calendarDropdown.classList.remove("active");
+  // Close the calendar dropdown
+  calendarDropdown.style.display = "none";
 
-  // Log the selected date
-  console.log("Selected date:", date);
+  // Fetch reservations for the selected date
+  fetchReservationsByDate(selectedDateStr).then((reservations) => {
+    // Find double bookings for the selected date
+    const doubleBookings = findDoubleBookings(reservations);
 
-  // Trigger any event handlers for date selection
-  const event = new CustomEvent("dateSelected", {
-    detail: { date: date },
+    // Display the double bookings
+    displayDoubleBookings(doubleBookings);
   });
-  document.dispatchEvent(event);
 }
 
-// Function to check if a day has events
-function hasEvents(day, month, year) {
-  // For now, just return true for some random days
-  // You can modify this to check your actual events data
-  const randomDays = [1, 7, 15, 22];
-  return randomDays.includes(day);
-}
+//  to check if a day has events
 
 // Event listeners
 prevMonthBtn.addEventListener("click", () => {
@@ -953,3 +1090,9 @@ animateOnView(".section", {
   duration: 1000,
   easing: "easeOutExpo",
 });
+
+// Call the function to fetch and display listings
+fetchAndDisplayListings();
+
+// Initialize
+fetchReservations();
