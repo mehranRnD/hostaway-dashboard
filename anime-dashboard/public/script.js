@@ -133,15 +133,27 @@ async function fetchReservations() {
     displayStayingGuests(stayingGuests);
 
     // Also display today's reservations
-    const todayReservations = reservations.filter((reservation) => {
-      if (!reservation.reservationDate) return false;
-      const reservationDate = new Date(reservation.reservationDate)
+
+    displayReservations(reservations);
+
+    const todayArrivals = reservations.filter((res) => {
+      const arrivalDateStr = new Date(res.arrivalDate)
         .toISOString()
         .split("T")[0];
-      return reservationDate === today;
+      return arrivalDateStr === today;
     });
+    console.log(todayArrivals);
 
-    displayReservations(todayReservations);
+    document.querySelector("#totalReservations .value").textContent =
+      todayArrivals.length;
+
+    anime({
+      targets: "#totalReservations .value",
+      innerHTML: [0, todayArrivals.length],
+      round: 1,
+      duration: 800,
+      easing: "easeOutExpo",
+    });
 
     // Hide loading and show content
     loading.style.display = "none";
@@ -197,39 +209,65 @@ function displayStayingGuests(guests) {
     anime({
       targets: ".guest-card",
       opacity: [0, 1],
-      translateY: [20, 0],
+      translateX: [-30, 0],
       delay: anime.stagger(100),
-      easing: "easeOutQuad",
+      duration: 700,
+      easing: "easeOutCirc",
     });
   }
 }
 
 // Function to categorize reservations
 function categorizeReservations(reservations) {
-  const today = new Date();
-  const todayStr = today.toISOString().split("T")[0];
+  const todayStr = new Date().toISOString().split("T")[0];
 
   return reservations.reduce(
     (acc, reservation) => {
-      const arrivalDate = new Date(reservation.arrivalDate);
-      const departureDate = new Date(reservation.departureDate);
+      const arrivalDateStr = new Date(reservation.arrivalDate)
+        .toISOString()
+        .split("T")[0];
+      const departureDateStr = new Date(reservation.departureDate)
+        .toISOString()
+        .split("T")[0];
 
-      // Actual Check-ins (already checked in)
+      //
       if (reservation.status === "checked_in") {
         acc.actualCheckIns.push(reservation);
       }
-      // Actual Check-outs (already checked out)
+
+      //
       else if (reservation.status === "checked_out") {
         acc.actualCheckOuts.push(reservation);
       }
-      // Expected Check-ins (arriving today)
-      else if (arrivalDate.toISOString().split("T")[0] === todayStr) {
+
+      // (arrival today, not checked in/out)
+      else if (
+        arrivalDateStr === todayStr &&
+        reservation.status !== "checked_in" &&
+        reservation.status !== "checked_out" &&
+        (reservation.status === "new" || reservation.status === "modified")
+      ) {
+        console.log("✅ Expected Check-in:", {
+          guest: reservation.guestName,
+          arrivalDate: arrivalDateStr,
+          status: reservation.status,
+        });
         acc.expectedCheckIns.push(reservation);
       }
-      // Expected Check-outs (departing today)
-      else if (departureDate.toISOString().split("T")[0] === todayStr) {
+
+      // (departure today)
+      if (
+        departureDateStr === todayStr &&
+        (reservation.status === "new" || reservation.status === "modified")
+      ) {
+        console.log(" Expected Check-out:", {
+          guest: reservation.guestName,
+          departureDate: departureDateStr,
+          status: reservation.status,
+        });
         acc.expectedCheckOuts.push(reservation);
       }
+
       return acc;
     },
     {
@@ -265,6 +303,17 @@ function displayReservations(reservations) {
       });
     }
   });
+
+  // Update the count display
+  const todayCheckInsCount = document.getElementById("todayCheckInsCount");
+  if (todayCheckInsCount) {
+    todayCheckInsCount.textContent = categorized.expectedCheckIns.length;
+  }
+
+  const todayCheckOutsCount = document.getElementById("todayCheckOutsCount");
+  if (todayCheckOutsCount) {
+    todayCheckOutsCount.textContent = categorized.expectedCheckOuts.length;
+  }
 }
 
 // Display reservations with animations
@@ -293,6 +342,16 @@ function displayReservationsWithAnimations(reservations) {
   // Animate stats
   animateStats(stats);
 
+  // Animate stat cards
+  anime({
+    targets: ".stat-card",
+    opacity: [0, 1],
+    translateY: [30, 0],
+    duration: 800,
+    delay: anime.stagger(150),
+    easing: "easeOutBack",
+  });
+
   // Create reservation cards
   const reservationsList = document.getElementById("reservationsList");
   reservationsList.innerHTML = "";
@@ -308,8 +367,9 @@ function displayReservationsWithAnimations(reservations) {
       targets: ".reservation-card",
       opacity: [0, 1],
       translateY: [20, 0],
-      delay: anime.stagger(100),
-      easing: "easeOutQuad",
+      delay: anime.stagger(80),
+      duration: 600,
+      easing: "easeOutSine",
     });
   }
 }
@@ -317,7 +377,8 @@ function displayReservationsWithAnimations(reservations) {
 // Create a reservation card
 function createReservationCard(reservation) {
   const card = document.createElement("div");
-  card.className = "reservation-card";
+  card.className =
+    "reservation-card" + (reservation.isOverdue ? " overdue" : "");
 
   const statusIndicator = document.createElement("div");
   statusIndicator.className =
@@ -333,24 +394,34 @@ function createReservationCard(reservation) {
 
   const checkOutBtn = document.createElement("button");
   checkOutBtn.className = "check-out-btn";
-  checkOutBtn.textContent = "Check Out";
+  checkOutBtn.textContent = "Mark Check-out";
   checkOutBtn.onclick = () => handleCheckOut(reservation.id);
+
+  const arrivalDate = new Date(reservation.arrivalDate);
+  const departureDate = new Date(reservation.departureDate);
+  const duration = Math.ceil(
+    (departureDate - arrivalDate) / (1000 * 60 * 60 * 24)
+  );
 
   card.innerHTML = `
     <div class="reservation-header">
-      <div class="status-indicator-container">
-        ${statusIndicator.outerHTML}
-      </div>
-      <h3>${reservation.guestName}</h3>
+      <h3>${reservation.guestName || "Unknown Guest"}</h3>
+      <span class="reservation-id">Reservation ID: ${
+        reservation.hostawayReservationId || "N/A"
+      }</span>
     </div>
     <div class="reservation-details">
       <div class="detail-row">
-        <span>Hostaway ID:</span>
-        <span>${reservation.hostawayId}</span>
+        <span>Listing:</span>
+        <span>${
+          listingsMap.get(reservation.listingMapId) ||
+          reservation.listingMapId ||
+          "N/A"
+        }</span>
       </div>
       <div class="detail-row">
-        <span>Listing:</span>
-        <span>${listingsMap.get(reservation.listingId)}</span>
+        <span>Duration:</span>
+        <span>${reservation.nights} nights</span>
       </div>
       <div class="detail-row">
         <span>Arrival:</span>
@@ -360,6 +431,7 @@ function createReservationCard(reservation) {
         <span>Departure:</span>
         <span>${reservation.departureDate}</span>
       </div>
+      
     </div>
     <div class="reservation-buttons">
       ${reservation.status !== "checked_in" ? checkInBtn.outerHTML : ""}
@@ -432,14 +504,14 @@ function animateStats(stats) {
     document.querySelector("#totalReservations .value"),
     stats.total
   );
-  animateNumber(
-    document.querySelector("#upcomingReservations .value"),
-    stats.upcoming
-  );
-  animateNumber(
-    document.querySelector("#completedReservations .value"),
-    stats.completed
-  );
+  // animateNumber(
+  //   document.querySelector("#upcomingReservations .value"),
+  //   stats.upcoming
+  // );
+  // animateNumber(
+  //   document.querySelector("#completedReservations .value"),
+  //   stats.completed
+  // );
 }
 
 // Show error state
@@ -494,3 +566,390 @@ fetchAndDisplayListings();
 
 // Initialize
 fetchReservations();
+
+// Function to fetch and display reservations for a given date (YYYY-MM-DD)
+async function fetchReservationsByDate(targetDateStr) {
+  try {
+    const response = await fetch(API_URL, {
+      headers: {
+        Authorization: `Bearer ${API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) throw new Error("Failed to fetch reservations");
+
+    const data = await response.json();
+    const reservations = Array.isArray(data.result) ? data.result : [];
+
+    // 🎯 Only keep reservations with status "new" or "modified"
+    const validStatuses = ["new", "modified"];
+    const filteredByStatus = reservations.filter((res) =>
+      validStatuses.includes(res.status)
+    );
+
+    // Filter by arrival or departure matching selected date
+    const filteredReservations = filteredByStatus.filter((res) => {
+      const arrival = new Date(res.arrivalDate).toISOString().split("T")[0];
+      const departure = new Date(res.departureDate).toISOString().split("T")[0];
+      return arrival === targetDateStr || departure === targetDateStr;
+    });
+
+    // Categorize and display reservations
+    displayReservations(filteredReservations, targetDateStr);
+
+    // Staying Guests for selected date
+    const selectedDate = new Date(targetDateStr);
+    const stayingGuests = filteredByStatus
+      .filter((res) => {
+        const arrival = new Date(res.arrivalDate);
+        const departure = new Date(res.departureDate);
+        return arrival <= selectedDate && selectedDate < departure;
+      })
+      .map((res) => ({
+        hostawayReservationId: res.hostawayReservationId || "Unknown ID",
+        guestName: res.guestName || "Unknown Guest",
+        listingMapId: res.listingMapId || "N/A",
+        listingName: listingsMap.get(res.listingMapId) || res.listingMapId,
+        arrivalDate: res.arrivalDate,
+        departureDate: res.departureDate,
+        nights: Math.ceil(
+          (new Date(res.departureDate) - new Date(res.arrivalDate)) /
+            (1000 * 60 * 60 * 24)
+        ),
+      }));
+
+    // Update staying stats
+    document.getElementById("totalStaying").textContent = stayingGuests.length;
+    document.getElementById("avgStay").textContent = Math.round(
+      stayingGuests.reduce((sum, guest) => {
+        const checkIn = new Date(guest.arrivalDate);
+        const checkOut = new Date(guest.departureDate);
+        return sum + Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+      }, 0) / stayingGuests.length || 0
+    );
+
+    displayStayingGuests(stayingGuests);
+
+    // Update total reservation count
+    document.querySelector("#totalReservations .value").textContent =
+      filteredReservations.length;
+
+    anime({
+      targets: "#totalReservations .value",
+      innerHTML: [0, filteredReservations.length],
+      round: 1,
+      duration: 800,
+      easing: "easeOutExpo",
+    });
+  } catch (err) {
+    console.error("Error fetching reservations by date:", err);
+  }
+}
+
+// Modify displayReservations to use specific date context
+function displayReservations(reservations, selectedDateStr) {
+  const categorized = categorizeReservationsForDate(
+    reservations,
+    selectedDateStr
+  );
+
+  [
+    "actualCheckIns",
+    "actualCheckOuts",
+    "expectedCheckIns",
+    "expectedCheckOuts",
+  ].forEach((section) => {
+    document.getElementById(`${section}List`).innerHTML = "";
+  });
+
+  Object.entries(categorized).forEach(([section, list]) => {
+    const container = document.getElementById(`${section}List`);
+    if (container) {
+      list.forEach((reservation) => {
+        const card = createReservationCard(reservation);
+        container.appendChild(card);
+      });
+    }
+  });
+
+  document.querySelector("#totalReservations .value").textContent =
+    categorized.expectedCheckIns.length;
+
+  document.getElementById("todayCheckInsCount").textContent =
+    categorized.expectedCheckIns.length;
+  document.getElementById("todayCheckOutsCount").textContent =
+    categorized.expectedCheckOuts.length;
+}
+
+// Categorize reservations specific to selected date
+function categorizeReservationsForDate(reservations, selectedDateStr) {
+  return reservations.reduce(
+    (acc, res) => {
+      const arrivalDate = new Date(res.arrivalDate).toISOString().split("T")[0];
+      const departureDate = new Date(res.departureDate)
+        .toISOString()
+        .split("T")[0];
+      const status = res.status;
+
+      if (arrivalDate === selectedDateStr && status === "checked_in") {
+        acc.actualCheckIns.push(res);
+      }
+
+      if (departureDate === selectedDateStr && status === "checked_out") {
+        acc.actualCheckOuts.push(res);
+      }
+
+      if (
+        arrivalDate === selectedDateStr &&
+        status !== "checked_in" &&
+        status !== "checked_out"
+      ) {
+        acc.expectedCheckIns.push(res);
+      }
+
+      if (
+        departureDate === selectedDateStr &&
+        status !== "checked_out" &&
+        status !== "checked_in"
+      ) {
+        acc.expectedCheckOuts.push(res);
+      }
+
+      return acc;
+    },
+    {
+      actualCheckIns: [],
+      actualCheckOuts: [],
+      expectedCheckIns: [],
+      expectedCheckOuts: [],
+    }
+  );
+}
+
+// 🟢 At load, show today's data
+document.addEventListener("DOMContentLoaded", () => {
+  const todayStr = new Date().toISOString().split("T")[0];
+  fetchReservationsByDate(todayStr);
+});
+
+// 📅 Handle calendar date selection
+document.addEventListener("dateSelected", (e) => {
+  const selectedDate = e.detail.date.toISOString().split("T")[0];
+  fetchReservationsByDate(selectedDate);
+});
+// Calendar functionality
+const calendarButton = document.getElementById("calendarButton");
+const calendarDropdown = document.getElementById("calendarDropdown");
+const calendarGrid = document.getElementById("calendarGrid");
+const calendarMonthYear = document.getElementById("calendarMonthYear");
+const prevMonthBtn = document.getElementById("prevMonth");
+const nextMonthBtn = document.getElementById("nextMonth");
+const selectedDateText = document.getElementById("selectedDateText");
+
+let currentDate = new Date();
+let selectedDate = null;
+
+// Toggle calendar dropdown
+function toggleCalendar() {
+  calendarDropdown.classList.toggle("active");
+
+  // Close dropdown when clicking outside
+  document.addEventListener(
+    "click",
+    (e) => {
+      if (
+        !calendarButton.contains(e.target) &&
+        !calendarDropdown.contains(e.target)
+      ) {
+        calendarDropdown.classList.remove("active");
+      }
+    },
+    { once: true }
+  );
+}
+
+// Update calendar display
+function updateCalendar() {
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const daysInMonth = lastDay.getDate();
+  const startDay = firstDay.getDay();
+
+  // Update month display
+  calendarMonthYear.textContent = `${firstDay.toLocaleString("default", {
+    month: "long",
+  })} ${year}`;
+
+  // Clear existing days
+  calendarGrid.innerHTML = "";
+
+  // Add empty cells for days before the first day of the month
+  for (let i = 0; i < startDay; i++) {
+    const dayElement = document.createElement("div");
+    dayElement.className = "calendar-day";
+    calendarGrid.appendChild(dayElement);
+  }
+
+  // Add days of the month
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dayElement = document.createElement("div");
+    dayElement.className = "calendar-day";
+    dayElement.textContent = day;
+    dayElement.dataset.date = `${year}-${month + 1}-${day}`;
+
+    // Add today class if it's today's date
+    if (
+      day === currentDate.getDate() &&
+      month === new Date().getMonth() &&
+      year === new Date().getFullYear()
+    ) {
+      dayElement.classList.add("today");
+    }
+
+    // Add selected class if this date is selected
+    if (
+      selectedDate &&
+      selectedDate.toISOString().split("T")[0] === dayElement.dataset.date
+    ) {
+      dayElement.classList.add("selected");
+    }
+
+    // Add event marker if there are events for this day
+    if (hasEvents(day, month, year)) {
+      dayElement.classList.add("has-event");
+    }
+
+    // Add click handler for date selection
+    dayElement.addEventListener("click", () => {
+      selectDate(new Date(year, month, day));
+    });
+
+    calendarGrid.appendChild(dayElement);
+  }
+
+  // Add empty cells for days after the last day of the month
+  const totalCells = startDay + daysInMonth;
+  const remainingCells = 42 - totalCells; // 6 weeks * 7 days = 42 cells
+  for (let i = 0; i < remainingCells; i++) {
+    const dayElement = document.createElement("div");
+    dayElement.className = "calendar-day";
+    calendarGrid.appendChild(dayElement);
+  }
+
+  // Animate days after updating
+  setTimeout(animateCalendarDays, 100);
+}
+
+// Select a date
+function selectDate(date) {
+  // Remove selected class from all days
+  document.querySelectorAll(".calendar-day.selected").forEach((day) => {
+    day.classList.remove("selected");
+  });
+
+  // Update selected date
+  selectedDate = date;
+
+  // Add selected class to the clicked date
+  const selectedDay = document.querySelector(
+    `[data-date="${date.toISOString().split("T")[0]}"]`
+  );
+  if (selectedDay) {
+    selectedDay.classList.add("selected");
+  }
+
+  // Update button text
+  selectedDateText.textContent = date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  // Close dropdown
+  calendarDropdown.classList.remove("active");
+
+  // Log the selected date
+  console.log("Selected date:", date);
+
+  // Trigger any event handlers for date selection
+  const event = new CustomEvent("dateSelected", {
+    detail: { date: date },
+  });
+  document.dispatchEvent(event);
+}
+
+// Function to check if a day has events
+function hasEvents(day, month, year) {
+  // For now, just return true for some random days
+  // You can modify this to check your actual events data
+  const randomDays = [1, 7, 15, 22];
+  return randomDays.includes(day);
+}
+
+// Event listeners
+prevMonthBtn.addEventListener("click", () => {
+  currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1);
+  updateCalendar();
+});
+
+nextMonthBtn.addEventListener("click", () => {
+  currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1);
+  updateCalendar();
+});
+
+// Initialize calendar
+document.addEventListener("DOMContentLoaded", () => {
+  // Update calendar
+  updateCalendar();
+
+  // Add click handler to calendar button
+  calendarButton.addEventListener("click", toggleCalendar);
+});
+
+// Animate calendar days when they appear
+function animateCalendarDays() {
+  const days = document.querySelectorAll(".calendar-day");
+  days.forEach((day, index) => {
+    anime({
+      targets: day,
+      opacity: [0, 1],
+      translateY: [-20, 0],
+      delay: index * 50,
+      duration: 500,
+      easing: "easeOutQuad",
+    });
+  });
+}
+
+// Helper to animate sections on scroll
+function animateOnView(targetSelector, animationOpts) {
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          anime({
+            targets: entry.target,
+            ...animationOpts,
+          });
+          observer.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.2 }
+  );
+
+  document
+    .querySelectorAll(targetSelector)
+    .forEach((el) => observer.observe(el));
+}
+
+// Apply it to all sections
+animateOnView(".section", {
+  opacity: [0, 1],
+  translateY: [40, 0],
+  duration: 1000,
+  easing: "easeOutExpo",
+});
