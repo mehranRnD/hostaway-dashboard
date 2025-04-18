@@ -1,17 +1,14 @@
 :root {
-  --background-color: #ffffff; /* Pure white */
-  --text-color: #1a1a1a; /* Deep black text (not pure black for less strain) */
-
-  --primary-color: #1a1a1a; /* Also used for headings/buttons */
-  --secondary-color: #0ea5e9; /* Sky Blue for highlights or links */
-  --accent-color: #f59e0b; /* Soft Amber for buttons/icons */
-
-  --card-background: #f9fafb; /* Very light gray card */
-  --card-border: #e5e7eb; /* Subtle border */
-  --highlight-glow: #e0f2fe; /* Light blue glow/hover */
-
-  --muted-text: #6b7280; /* For less important info */
+  --primary-color: #fbfef9;        /* Soft Ivory – calm, clean background */
+  --secondary-color: #a63446;      /* Crimson – powerful accent */
+  --accent-color: #7e1946;         /* Plum – deep, dramatic highlight */
+  --background-color: #fbfef9;     /* Bright neutral background */
+  --card-background: #ffffff;      /* Pure white for elevated sections */
+  --highlight-glow: #0c6291;       /* Cool teal contrast for hover/glow */
+  --text-color: #000004;           /* Near-black – rich contrast, readable */
 }
+
+
 
 * {
   transition: background-color 0.5s ease, color 0.5s ease,
@@ -195,8 +192,9 @@ body {
 }
 
 .check-in-btn,
-.check-out-btn {
-  background: #4caf50;
+.check-out-btn,
+.print-btn {
+  background: #005303;
   color: white;
   border: none;
   padding: 8px 16px;
@@ -206,6 +204,10 @@ body {
 }
 
 .check-out-btn {
+  background: #8c0000;
+}
+
+.print-btn {
   background: #000000;
 }
 
@@ -230,44 +232,8 @@ body {
   background: #4caf50;
 }
 
-.reservation-buttons {
-  display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
-  justify-content: space-between;
-}
 
-.reservation-button {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
 
-.btn-check-in {
-  background: var(--primary-color);
-  color: white;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.btn-check-in:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(244, 244, 244, 0.3);
-}
-
-.btn-print {
-  background: var(--secondary-color);
-  color: white;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.btn-print:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(244, 244, 244, 0.3);
-}
 
 .calendar-container {
   background: var(--card-background);
@@ -277,7 +243,6 @@ body {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
 }
-
 .calendar-header {
   display: flex;
   justify-content: space-between;
@@ -288,7 +253,7 @@ body {
 .calendar-month-year {
   font-size: 1.1rem;
   font-weight: 600;
-  color: var(--primary-color);
+  color: var(--text-color);
 }
 
 .calendar-nav {
@@ -656,51 +621,6 @@ body {
   text-align: center;
 }
 
-/* Reservation button styles */
-.reservation-buttons {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 1rem;
-  justify-content: flex-end;
-}
-
-.mark-checkin-btn,
-.mark-checkout-btn,
-.print-btn {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.mark-checkin-btn {
-  background-color: #22c55e;
-  color: white;
-}
-
-.mark-checkin-btn:hover {
-  background-color: #16a34a;
-}
-
-.mark-checkout-btn {
-  background-color: #dc2626;
-  color: white;
-}
-
-.mark-checkout-btn:hover {
-  background-color: #b91c1c;
-}
-
-.print-btn {
-  background-color: #f59e0b;
-  color: white;
-}
-
-.print-btn:hover {
-  background-color: #d97706;
-}
 
 /* Double Bookings Section Styles */
 .double-bookings-list {
@@ -1069,4 +989,18 @@ body {
     padding: 0.4rem;
     font-size: 0.85rem;
   }
+}
+.slide-up {
+    animation: slideUp 0.5s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
