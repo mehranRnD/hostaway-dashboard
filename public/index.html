@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HostAway Dashboard</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      rel="icon"
+      href="https://i.ibb.co/vC3k9ZXv/favicon-32x32.png"
+      type="image/png"
+    />
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  </head>
+  <body>
+    <div class="dashboard-container">
+      <div class="header">
+        <div class="header-left">
+          <h1>HostAway Dashboard</h1>
+          <p>Your reservations at a glance</p>
+        </div>
+
+        <div class="header-right">
+          <div class="calendar-button-container">
+            <button class="calendar-button" id="calendarButton">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+              <span id="selectedDateText">Select Date</span>
+            </button>
+
+            <!-- Calendar Dropdown -->
+            <div class="calendar-dropdown" id="calendarDropdown">
+              <div class="calendar-header">
+                <div class="calendar-month-year" id="calendarMonthYear"></div>
+                <div class="calendar-nav">
+                  <button id="prevMonth">
+                    <svg
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path d="M15 6L9 12L15 18" />
+                    </svg>
+                  </button>
+                  <button id="nextMonth">
+                    <svg
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path d="M9 6L15 12L9 18" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="calendar-days">
+                <div>Sun</div>
+                <div>Mon</div>
+                <div>Tue</div>
+                <div>Wed</div>
+                <div>Thu</div>
+                <div>Fri</div>
+                <div>Sat</div>
+              </div>
+
+              <div class="calendar-grid" id="calendarGrid">
+                <!-- Calendar days will be added here -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Dashboard Section -->
+      <div class="stats-grid">
+        <div class="stat-card" id="totalReservations">
+          <h2>Total Reservations</h2>
+          <div class="value">0</div>
+        </div>
+        <!-- <div class="stat-card" id="upcomingReservations">
+          <h2>Upcoming</h2>
+          <div class="value">0</div>
+        </div>
+        <div class="stat-card" id="completedReservations">
+          <h2>Completed</h2>
+          <div class="value">0</div>
+        </div> -->
+      </div>
+
+      <!-- Main Body Sections -->
+      <div class="main-body">
+        <div class="section" id="actualCheckIns">
+          <h2>Actual Check-ins</h2>
+          <div class="reservations-grid" id="actualCheckInsList">
+            <!-- Actual check-ins will be added here -->
+          </div>
+        </div>
+        
+
+        <div class="section" id="actualCheckOuts">
+          <h2>Actual Check-outs</h2>
+          <div class="reservations-grid" id="actualCheckOutsList">
+            <!-- Actual check-outs will be added here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Expected Sections -->
+      <div class="expected-sections">
+        <div class="section" id="expectedCheckInsSection">
+          <div class="section-header">
+            <h2>Expected Check-ins</h2>
+            <div class="check-ins-count" id="todayCheckInsCount">0</div>
+          </div>
+          <div class="guest-grid" id="expectedCheckInsList">
+            <!-- Expected check-ins will be added here -->
+          </div>
+        </div>
+
+        <div class="section" id="expectedCheckOutsSection">
+          <div class="section-header">
+            <h2>Expected Check-outs</h2>
+            <div class="check-outs-count" id="todayCheckOutsCount">0</div>
+          </div>
+          <div class="guest-grid" id="expectedCheckOutsList">
+            <!-- Expected check-outs will be added here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Staying Guests Section -->
+      <div class="section" id="stayingGuests">
+        <h2>Staying Guests</h2>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <h3>Total Staying</h3>
+            <div class="value" id="totalStaying">0</div>
+          </div>
+          <div class="stat-card">
+            <h3>Average Stay</h3>
+            <div class="value" id="avgStay">0</div>
+            <div class="label">Nights</div>
+          </div>
+        </div>
+
+        <div class="guest-list" id="stayingGuestList">
+          <div class="guest-header">
+            <div class="guest-col hostaway-id">Hostaway ID</div>
+            <div class="guest-col name">Guest Name</div>
+            <div class="guest-col listing">Listing ID</div>
+            <div class="guest-col nights">Nights</div>
+            <div class="guest-col duration">Staying Duration</div>
+          </div>
+          <div id="stayingGuestCards"></div>
+        </div>
+      </div>
+
+      <!-- Double Bookings Section -->
+      <div class="section" id="doubleBookings">
+        <h2>Double Bookings</h2>
+        <div class="double-bookings-list" id="doubleBookingsList">
+          <!-- Double bookings will be added here -->
+        </div>
+      </div>
+
+      <div class="loading" id="loading" style="display: none">
+        <div>Loading reservations...</div>
+      </div>
+
+      <div class="error" id="error" style="display: none">
+        <div>Error loading reservations</div>
+      </div>
+    </div>
+    <!-- External anime.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+
+    <script src="script.js"></script>
+    <script src="actual_script.js"></script>
+  </body>
+</html>
