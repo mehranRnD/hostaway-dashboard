@@ -1,14 +1,11 @@
-require("dotenv").config();
 const express = require("express");
 const path = require("path");
 const cors = require("cors");
+require("dotenv").config(); // Load environment variables
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const BASE_URL =
-  process.env.NODE_ENV === "production"
-    ? "http://159.223.201.156:3000"
-    : "http://localhost:3000";
+const NODE_ENV = process.env.NODE_ENV || "development";
 
 // Enable CORS for all routes
 app.use(cors());
@@ -20,8 +17,11 @@ app.use(express.static(path.join(__dirname, "public")));
 // Slack notification route
 app.post("/send-to-slack", async (req, res) => {
   try {
-    const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
+    const slackWebhookUrl =
+      "https://hooks.slack.com/services/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";
     const { text } = req.body;
+
+    console.log("Sending Slack notification:", text);
 
     if (!text) {
       return res.status(400).json({ error: "Text message is required" });
@@ -34,6 +34,8 @@ app.post("/send-to-slack", async (req, res) => {
       },
       body: JSON.stringify({ text }),
     });
+
+    console.log("Slack response status:", response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -53,66 +55,16 @@ app.post("/send-to-slack", async (req, res) => {
   }
 });
 
-// API endpoint for reservations
-app.get("/api/reservations/:id", async (req, res) => {
-  try {
-    const response = await fetch(
-      `https://api.hostaway.com/v1/reservations/${req.params.id}`,
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    res.json(data);
-  } catch (error) {
-    console.error("Error fetching reservation:", error);
-    res.status(500).json({
-      error: "Failed to fetch reservation",
-      details: error.message,
-    });
-  }
-});
-
-// API endpoint for finance fields
-app.get("/api/financeStandardField/reservation/:id", async (req, res) => {
-  try {
-    const response = await fetch(
-      `https://api.hostaway.com/v1/financeStandardField/reservation/${req.params.id}`,
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    res.json(data);
-  } catch (error) {
-    console.error("Error fetching finance fields:", error);
-    res.status(500).json({
-      error: "Failed to fetch finance fields",
-      details: error.message,
-    });
-  }
-});
-
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 app.listen(PORT, () => {
-  console.log(`Server is running on ${BASE_URL}`);
+  const baseUrl =
+    NODE_ENV === "production"
+      ? process.env.PRODUCTION
+      : `http://localhost:${PORT}`;
+
+  console.log(`Server is running in ${NODE_ENV} mode`);
+  console.log(`Server URL: ${baseUrl}`);
 });

@@ -46,21 +46,16 @@ const listingsMap = new Map(
 );
 
 // Dashboard functionality with animations
-const config = {
-  getBaseUrl() {
-    // Check if we're in production
-    if (window.location.hostname === "159.223.201.156") {
-      return "http://159.223.201.156:3000";
-    }
-    // Default to localhost for development
-    return "http://localhost:3000";
-  },
-};
-
-const BASE_URL = config.getBaseUrl();
-const API_URL = `${BASE_URL}/api/reservations`;
+const API_URL = "https://api.hostaway.com/v1/reservations";
 const API_TOKEN =
   "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiI4MDA2NiIsImp0aSI6ImNhYzRlNzlkOWVmZTBiMmZmOTBiNzlkNTEzYzIyZTU1MDhiYWEwNWM2OGEzYzNhNzJhNTU1ZmMzNDI4OTQ1OTg2YWI0NTVjNmJjOWViZjFkIiwiaWF0IjoxNzM2MTY3ODExLjgzNTUyNCwibmJmIjoxNzM2MTY3ODExLjgzNTUyNiwiZXhwIjoyMDUxNzAwNjExLjgzNTUzMSwic3ViIjoiIiwic2NvcGVzIjpbImdlbmVyYWwiXSwic2VjcmV0SWQiOjUzOTUyfQ.Mmqfwt5R4CK5AHwNQFfe-m4PXypLLbAPtzCD7CxgjmagGa0AWfLzPM_panH9fCbYbC1ilNpQ-51KOQjRtaFT3vR6YKEJAUkUSOKjZupQTwQKf7QE8ZbLQDi0F951WCPl9uKz1nELm73V30a8rhDN-97I43FWfrGyqBgt7F8wPkE";
+
+// Determine the server URL based on the current environment
+const SERVER_URL =
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1"
+    ? "http://localhost:3000"
+    : "http://159.223.201.156:3000";
 
 // Show loading state
 const loading = document.getElementById("loading");
@@ -503,12 +498,12 @@ function handleCheckIn(reservation) {
 
 👤 *${guestName}* has checked in to 🏠 *${apartmentName}* at 🕒 *${formattedDateTime}*.
 
-✅ Welcome to Namuve - We are excited to have you!
+✅ Welcome to the Namuve!
                                __________________________________________________________      
 `,
   };
 
-  fetch(`${BASE_URL}/send-to-slack`, {
+  fetch(`${SERVER_URL}/send-to-slack`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(slackMessage),
@@ -526,7 +521,7 @@ function handleCheckIn(reservation) {
   );
 
   // Make API call to update custom field value
-  const url = `${BASE_URL}/api/reservations/${reservation.hostawayReservationId}?forceOverbooking=1`;
+  const url = `https://api.hostaway.com/v1/reservations/${reservation.hostawayReservationId}?forceOverbooking=1`;
 
   fetch(url, {
     method: "PUT",
@@ -681,10 +676,10 @@ function handleCheckOut(reservation) {
 
   // Slack notification
   const slackMessage = {
-    text: `📤 *Actual Check-Out Alert!*\n\n👤 *${guestName}* has checked out from 🏠 *${apartmentName}* at 🕒 *${formattedDateTime}*.\n\n✅ Please ensure all final checks are completed.\n                               __________________________________________________________      \n`,
+    text: `📤 *Check-Out Alert!*\n\n👤 *${guestName}* has checked out from 🏠 *${apartmentName}* at 🕒 *${formattedDateTime}*.\n\n✅ Please ensure all final checks are completed.\n                               __________________________________________________________      \n`,
   };
 
-  fetch(`${BASE_URL}/send-to-slack`, {
+  fetch(`${SERVER_URL}/send-to-slack`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(slackMessage),
@@ -697,7 +692,7 @@ function handleCheckOut(reservation) {
   existingCheckOuts[reservationId] = formattedDateTime;
   localStorage.setItem("actualCheckOuts", JSON.stringify(existingCheckOuts));
 
-  const apiUrl = `${BASE_URL}/api/reservations/${reservationId}?forceOverbooking=1`;
+  const apiUrl = `https://api.hostaway.com/v1/reservations/${reservationId}?forceOverbooking=1`;
   fetch(apiUrl, {
     method: "PUT",
     headers: {
@@ -719,10 +714,10 @@ function handleCheckOut(reservation) {
     document.querySelector("#actualCheckOutsList").appendChild(card);
     updateUI();
   }
-  // Reload the page after 10 seconds (10000 milliseconds)
-  setTimeout(() => {
-    window.location.reload();
-  }, 5000);
+  // Reload the page
+
+  window.location.reload();
+  
 }
 
 // Add event listener for check-in and check-out buttons
@@ -769,7 +764,7 @@ async function handlePrint(reservationId, printType) {
   let printContent;
   if (printType === "checkin") {
     // Fetch reservation data and extract actualCheckInTime
-    const reservationUrl = `${BASE_URL}/api/reservations/${reservationId}`;
+    const reservationUrl = `https://api.hostaway.com/v1/reservations/${reservationId}`;
     let actualCheckInTime = null;
     try {
       const response = await fetch(reservationUrl, {
@@ -1076,7 +1071,7 @@ async function handlePrint(reservationId, printType) {
     `;
   } else if (printType === "checkout") {
     // Fetch reservation data and extract actualCheckOutTime
-    const reservationUrl = `${BASE_URL}/api/reservations/${reservationId}`;
+    const reservationUrl = `https://api.hostaway.com/v1/reservations/${reservationId}`;
     let actualCheckOutTime = null;
     try {
       const response = await fetch(reservationUrl, {
@@ -1795,7 +1790,7 @@ document.addEventListener("dateSelected", (e) => {
 async function getFinanceFields(reservationId) {
   try {
     const response = await fetch(
-      `${BASE_URL}/api/financeStandardField/reservation/${reservationId}`,
+      `https://api.hostaway.com/v1/financeStandardField/reservation/${reservationId}`,
       {
         headers: {
           Authorization: `Bearer ${API_TOKEN}`,
