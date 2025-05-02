@@ -5,7 +5,7 @@ require("dotenv").config(); // Load environment variables
 const fetch = require("node-fetch");
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 
 // Enable CORS for all routes
