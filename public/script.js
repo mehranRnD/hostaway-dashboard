@@ -46,7 +46,19 @@ const listingsMap = new Map(
 );
 
 // Dashboard functionality with animations
-const API_URL = "https://api.hostaway.com/v1/reservations";
+const config = {
+  getBaseUrl() {
+    // Check if we're in production
+    if (window.location.hostname === "159.223.201.156") {
+      return "http://159.223.201.156:3000";
+    }
+    // Default to localhost for development
+    return "http://localhost:3000";
+  },
+};
+
+const BASE_URL = config.getBaseUrl();
+const API_URL = `${BASE_URL}/api/reservations`;
 const API_TOKEN =
   "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiI4MDA2NiIsImp0aSI6ImNhYzRlNzlkOWVmZTBiMmZmOTBiNzlkNTEzYzIyZTU1MDhiYWEwNWM2OGEzYzNhNzJhNTU1ZmMzNDI4OTQ1OTg2YWI0NTVjNmJjOWViZjFkIiwiaWF0IjoxNzM2MTY3ODExLjgzNTUyNCwibmJmIjoxNzM2MTY3ODExLjgzNTUyNiwiZXhwIjoyMDUxNzAwNjExLjgzNTUzMSwic3ViIjoiIiwic2NvcGVzIjpbImdlbmVyYWwiXSwic2VjcmV0SWQiOjUzOTUyfQ.Mmqfwt5R4CK5AHwNQFfe-m4PXypLLbAPtzCD7CxgjmagGa0AWfLzPM_panH9fCbYbC1ilNpQ-51KOQjRtaFT3vR6YKEJAUkUSOKjZupQTwQKf7QE8ZbLQDi0F951WCPl9uKz1nELm73V30a8rhDN-97I43FWfrGyqBgt7F8wPkE";
 
@@ -496,7 +508,7 @@ function handleCheckIn(reservation) {
 `,
   };
 
-  fetch("http://localhost:3000/send-to-slack", {
+  fetch(`${BASE_URL}/send-to-slack`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(slackMessage),
@@ -532,7 +544,10 @@ function handleCheckIn(reservation) {
     }),
   })
     .then(() => {
-      console.log("Check-in marked for reservation:", reservation.hostawayReservationId);
+      console.log(
+        "Check-in marked for reservation:",
+        reservation.hostawayReservationId
+      );
       updateUI(); // Refresh the UI after successful update
     })
     .catch((error) => {
@@ -567,7 +582,10 @@ function handleCheckIn(reservation) {
     if (!printBtn) {
       const printButton = document.createElement("button");
       printButton.className = "print-btn";
-      printButton.setAttribute("data-res-id", reservation.hostawayReservationId);
+      printButton.setAttribute(
+        "data-res-id",
+        reservation.hostawayReservationId
+      );
       printButton.setAttribute("data-type", "checkin");
       printButton.textContent = "Print Check-in Form";
 
@@ -666,7 +684,7 @@ function handleCheckOut(reservation) {
     text: `📤 *Actual Check-Out Alert!*\n\n👤 *${guestName}* has checked out from 🏠 *${apartmentName}* at 🕒 *${formattedDateTime}*.\n\n✅ Please ensure all final checks are completed.\n                               __________________________________________________________      \n`,
   };
 
-  fetch("http://localhost:3000/send-to-slack", {
+  fetch(`${BASE_URL}/send-to-slack`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(slackMessage),
