@@ -503,7 +503,7 @@ function handleCheckIn(reservation) {
 
 👤 *${guestName}* has checked in to 🏠 *${apartmentName}* at 🕒 *${formattedDateTime}*.
 
-✅ Welcome to the property!
+✅ Welcome to Namuve - We are excited to have you!
                                __________________________________________________________      
 `,
   };
@@ -526,7 +526,7 @@ function handleCheckIn(reservation) {
   );
 
   // Make API call to update custom field value
-  const url = `https://api.hostaway.com/v1/reservations/${reservation.hostawayReservationId}?forceOverbooking=1`;
+  const url = `${BASE_URL}/api/reservations/${reservation.hostawayReservationId}?forceOverbooking=1`;
 
   fetch(url, {
     method: "PUT",
@@ -697,7 +697,7 @@ function handleCheckOut(reservation) {
   existingCheckOuts[reservationId] = formattedDateTime;
   localStorage.setItem("actualCheckOuts", JSON.stringify(existingCheckOuts));
 
-  const apiUrl = `https://api.hostaway.com/v1/reservations/${reservationId}?forceOverbooking=1`;
+  const apiUrl = `${BASE_URL}/api/reservations/${reservationId}?forceOverbooking=1`;
   fetch(apiUrl, {
     method: "PUT",
     headers: {
@@ -719,8 +719,10 @@ function handleCheckOut(reservation) {
     document.querySelector("#actualCheckOutsList").appendChild(card);
     updateUI();
   }
-  // Reload the page
-  window.location.reload();
+  // Reload the page after 10 seconds (10000 milliseconds)
+  setTimeout(() => {
+    window.location.reload();
+  }, 5000);
 }
 
 // Add event listener for check-in and check-out buttons
@@ -767,7 +769,7 @@ async function handlePrint(reservationId, printType) {
   let printContent;
   if (printType === "checkin") {
     // Fetch reservation data and extract actualCheckInTime
-    const reservationUrl = `https://api.hostaway.com/v1/reservations/${reservationId}`;
+    const reservationUrl = `${BASE_URL}/api/reservations/${reservationId}`;
     let actualCheckInTime = null;
     try {
       const response = await fetch(reservationUrl, {
@@ -1074,7 +1076,7 @@ async function handlePrint(reservationId, printType) {
     `;
   } else if (printType === "checkout") {
     // Fetch reservation data and extract actualCheckOutTime
-    const reservationUrl = `https://api.hostaway.com/v1/reservations/${reservationId}`;
+    const reservationUrl = `${BASE_URL}/api/reservations/${reservationId}`;
     let actualCheckOutTime = null;
     try {
       const response = await fetch(reservationUrl, {
@@ -1793,7 +1795,7 @@ document.addEventListener("dateSelected", (e) => {
 async function getFinanceFields(reservationId) {
   try {
     const response = await fetch(
-      `https://api.hostaway.com/v1/financeStandardField/reservation/${reservationId}`,
+      `${BASE_URL}/api/financeStandardField/reservation/${reservationId}`,
       {
         headers: {
           Authorization: `Bearer ${API_TOKEN}`,
