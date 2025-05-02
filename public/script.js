@@ -37,6 +37,7 @@ const listings = [
   { listingId: 336255, listingName: "8F-80 (S)", listingType: "Studio" },
   { listingId: 378076, listingName: "6F-60 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 378078, listingName: "6F-57 (2B)", listingType: "2 Bed Rooms" },
+  { listingId: 383744, listingName: "5F-53 (1B)", listingType: "1 Bed Room" },
 ];
 
 // Maps listingId to listing name
@@ -120,7 +121,7 @@ async function fetchReservations() {
 
     // Find double bookings
     const doubleBookings = findDoubleBookings(reservations, today);
-    displayDoubleBookings(doubleBookings);
+    // displayDoubleBookings(doubleBookings);
 
     // Calculate statistics
     const stats = {
@@ -135,7 +136,7 @@ async function fetchReservations() {
 
     // Update statistics
     document.getElementById("totalStaying").textContent = stats.totalStaying;
-    document.getElementById("avgStay").textContent = Math.round(stats.avgStay);
+    // document.getElementById("avgStay").textContent = Math.round(stats.avgStay);
 
     // Display staying guests
     displayStayingGuests(stayingGuests);
@@ -226,7 +227,8 @@ function displayStayingGuests(guests) {
 
 // Function to categorize reservations
 function categorizeReservations(reservations) {
-  const today = new Date();
+  const today = new Date().toISOString().split("T")[0];
+
   const categorized = {
     expectedCheckIns: [],
     expectedCheckOuts: [],
@@ -234,21 +236,30 @@ function categorizeReservations(reservations) {
     actualCheckOuts: [],
   };
 
+  const checkInsFromStorage = JSON.parse(
+    localStorage.getItem("actualCheckIns") || "{}"
+  );
+  const checkOutsFromStorage = JSON.parse(
+    localStorage.getItem("actualCheckOuts") || "{}"
+  );
+
   reservations.forEach((reservation) => {
-    // Check if the reservation is already checked in or out
-    if (reservation.status === "checked_in") {
+    const resId = reservation.hostawayReservationId;
+    const arrivalDate = new Date(reservation.arrivalDate)
+      .toISOString()
+      .split("T")[0];
+    const departureDate = new Date(reservation.departureDate)
+      .toISOString()
+      .split("T")[0];
+
+    if (checkInsFromStorage[resId] && !checkOutsFromStorage[resId]) {
       categorized.actualCheckIns.push(reservation);
-    } else if (reservation.status === "checked_out") {
+    } else if (checkOutsFromStorage[resId]) {
       categorized.actualCheckOuts.push(reservation);
     } else {
-      const arrivalDate = new Date(reservation.arrivalDate);
-      const departureDate = new Date(reservation.departureDate);
-
-      if (arrivalDate.toDateString() === today.toDateString()) {
-        categorized.expectedCheckIns.push(reservation);
-      } else if (departureDate.toDateString() === today.toDateString()) {
+      if (arrivalDate === today) categorized.expectedCheckIns.push(reservation);
+      if (departureDate === today)
         categorized.expectedCheckOuts.push(reservation);
-      }
     }
   });
 
@@ -405,7 +416,7 @@ function createReservationCard(reservation, sectionType) {
         sectionType === "expectedCheckIns"
           ? `
         <button class="check-in-btn" data-res-id="${reservation.hostawayReservationId}">Mark Check In</button>
-      `
+        `
           : ""
       }
       ${
@@ -454,8 +465,80 @@ function createReservationCard(reservation, sectionType) {
   return card;
 }
 
-// Function to handle check-in
-function handleCheckIn(reservationId) {
+function handleCheckIn(reservation) {
+  const now = new Date();
+  const formattedDateTime = now.toLocaleString("en-US", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+
+  // Get guest and apartment info
+  const reservationCard = document.querySelector(
+    `.reservation-card[data-res-id="${reservation.hostawayReservationId}"]`
+  );
+  if (!reservationCard) return;
+  let guestName = reservation.guestName;
+  let apartmentName =
+    listingsMap.get(reservation.listingMapId) || reservation.listingMapId;
+
+  // Send Slack notification
+  const slackMessage = {
+    text: `📥 *Check-In Alert!*
+
+👤 *${guestName}* has checked in to 🏠 *${apartmentName}* at 🕒 *${formattedDateTime}*.
+
+✅ Welcome to the property!
+                               __________________________________________________________      
+`,
+  };
+
+  fetch("http://localhost:3000/send-to-slack", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(slackMessage),
+  }).catch((err) => console.error("Slack error", err));
+
+  // Save to localStorage
+  const existingCheckIns = JSON.parse(
+    localStorage.getItem("actualCheckIns") || "{}"
+  );
+  existingCheckIns[reservation.hostawayReservationId] = formattedDateTime;
+  localStorage.setItem("actualCheckIns", JSON.stringify(existingCheckIns));
+
+  console.log(
+    `Check-in marked for reservation ${reservation.hostawayReservationId} at: ${formattedDateTime}`
+  );
+
+  // Make API call to update custom field value
+  const url = `https://api.hostaway.com/v1/reservations/${reservation.hostawayReservationId}?forceOverbooking=1`;
+
+  fetch(url, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${API_TOKEN}`,
+    },
+    body: JSON.stringify({
+      customFieldValues: [
+        {
+          customFieldId: 76281,
+          value: formattedDateTime,
+        },
+      ],
+    }),
+  })
+    .then(() => {
+      console.log("Check-in marked for reservation:", reservation.hostawayReservationId);
+      updateUI(); // Refresh the UI after successful update
+    })
+    .catch((error) => {
+      console.error("Error updating reservation:", error);
+    });
+
   const expectedCheckInsList = document.querySelector("#expectedCheckInsList");
   const actualCheckInsList = document.querySelector("#actualCheckInsList");
 
@@ -464,18 +547,16 @@ function handleCheckIn(reservationId) {
     return;
   }
 
-  const reservationCard = expectedCheckInsList.querySelector(
-    `.reservation-card[data-res-id="${reservationId}"]`
-  );
-
   if (reservationCard) {
     actualCheckInsList.appendChild(reservationCard);
 
+    // Update section type
     const sectionTypeElement = reservationCard.querySelector(".section-type");
     if (sectionTypeElement) {
       sectionTypeElement.textContent = "Actual Check-in";
     }
 
+    // Remove check-in button
     const checkInBtn = reservationCard.querySelector(".check-in-btn");
     if (checkInBtn) {
       checkInBtn.remove();
@@ -486,7 +567,7 @@ function handleCheckIn(reservationId) {
     if (!printBtn) {
       const printButton = document.createElement("button");
       printButton.className = "print-btn";
-      printButton.setAttribute("data-res-id", reservationId);
+      printButton.setAttribute("data-res-id", reservation.hostawayReservationId);
       printButton.setAttribute("data-type", "checkin");
       printButton.textContent = "Print Check-in Form";
 
@@ -501,7 +582,6 @@ function handleCheckIn(reservationId) {
         handlePrint(reservationId, "checkin");
       });
     }
-
     updateUI();
   }
 }
@@ -545,59 +625,84 @@ function updateUI() {
 }
 
 // Function to handle check-out
-function handleCheckOut(reservationId) {
-  const expectedCheckOutsList = document.querySelector(
-    "#expectedCheckOutsList"
-  );
-  const actualCheckOutsList = document.querySelector("#actualCheckOutsList");
+function handleCheckOut(reservation) {
+  const reservationId = reservation.hostawayReservationId;
+  const now = new Date();
+  const formattedDateTime = now.toLocaleString("en-US", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
 
-  if (!expectedCheckOutsList || !actualCheckOutsList) {
-    console.error("Check-out lists not found");
-    return;
-  }
+  let guestName = reservation.guestName;
+  let apartmentName =
+    listingsMap.get(reservation.listingMapId) || reservation.listingMapId;
 
-  const reservationCard = expectedCheckOutsList.querySelector(
+  // Try getting from DOM too, if available
+  const reservationCard = document.querySelector(
     `.reservation-card[data-res-id="${reservationId}"]`
   );
-
   if (reservationCard) {
-    actualCheckOutsList.appendChild(reservationCard);
+    const guestEl = reservationCard.querySelector(".guestName");
+    const aptEl = reservationCard.querySelector(".apartmentName");
+    if (guestEl) guestName = guestEl.textContent.trim();
+    if (aptEl) apartmentName = aptEl.textContent.trim();
+  }
 
-    // Update section type
-    const sectionTypeElement = reservationCard.querySelector(".section-type");
-    if (sectionTypeElement) {
-      sectionTypeElement.textContent = "Actual Check-out";
-    }
+  // Prevent sending if missing data
+  if (
+    !guestName ||
+    !apartmentName ||
+    guestName === "Guest" ||
+    apartmentName === "Apartment"
+  )
+    return;
 
-    // Remove check-out button
-    const checkOutBtn = reservationCard.querySelector(".check-out-btn");
-    if (checkOutBtn) {
-      checkOutBtn.remove();
-    }
+  // Slack notification
+  const slackMessage = {
+    text: `📤 *Check-Out Alert!*\n\n👤 *${guestName}* has checked out from 🏠 *${apartmentName}* at 🕒 *${formattedDateTime}*.\n\n✅ Please ensure all final checks are completed.\n                               __________________________________________________________      \n`,
+  };
 
-    // Add print button if it doesn't exist
-    const printBtn = reservationCard.querySelector(".print-btn");
-    if (!printBtn) {
-      const printButton = document.createElement("button");
-      printButton.className = "print-btn";
-      printButton.setAttribute("data-res-id", reservationId);
-      printButton.setAttribute("data-type", "checkout");
-      printButton.textContent = "Print Check-out Form";
+  fetch("http://localhost:3000/send-to-slack", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(slackMessage),
+  }).catch((err) => console.error("Slack error", err));
 
-      // Add to actions div
-      const actionsDiv = reservationCard.querySelector(".reservation-actions");
-      if (actionsDiv) {
-        actionsDiv.appendChild(printButton);
-      }
+  // Local storage and Hostaway update
+  const existingCheckOuts = JSON.parse(
+    localStorage.getItem("actualCheckOuts") || "{}"
+  );
+  existingCheckOuts[reservationId] = formattedDateTime;
+  localStorage.setItem("actualCheckOuts", JSON.stringify(existingCheckOuts));
 
-      // Add event listener
-      printButton.addEventListener("click", () => {
-        handlePrint(reservationId, "checkout");
-      });
-    }
+  const apiUrl = `https://api.hostaway.com/v1/reservations/${reservationId}?forceOverbooking=1`;
+  fetch(apiUrl, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${API_TOKEN}`,
+    },
+    body: JSON.stringify({
+      customFieldValues: [{ customFieldId: 76282, value: formattedDateTime }],
+    }),
+  })
+    .then(() => updateUI())
+    .catch((err) => console.error("Hostaway error", err));
 
+  // Move to actual check-outs
+  const card = document.querySelector(
+    `.reservation-card[data-res-id="${reservationId}"]`
+  );
+  if (card) {
+    document.querySelector("#actualCheckOutsList").appendChild(card);
     updateUI();
   }
+  // Reload the page
+  window.location.reload();
 }
 
 // Add event listener for check-in and check-out buttons
@@ -635,198 +740,112 @@ async function handlePrint(reservationId, printType) {
   const reservation = JSON.parse(card.dataset.reservation);
 
   // Get basic details
+
   const guestName = reservation.guestName || "";
-  const listingMapId =
-    listingsMap.get(reservation.listingMapId) || reservation.listingMapId;
-
-  // Get the listing type from the listings array
-  const listingType =
-    listings.find((l) => l.listingId === reservation.listingMapId)
-      ?.listingType || "N/A";
-
-  // Get additional details from the reservation object
-  const exchangerateApi =
-    "https://v6.exchangerate-api.com/v6/e528361fb75219dbc48899b1/latest/USD";
-  const cnic = reservation.cnic || "";
-  const address = reservation.guestAddress || "";
-  const email = reservation.guestEmail || "";
-  const contact = reservation.phone || "";
-  const adults = reservation.adults || "";
-  const children = reservation.children || "";
-  const vehicleNo = reservation.vehicleNo || "";
-  function formatTime(hour) {
-    if (isNaN(hour)) return "";
-    const h = parseInt(hour, 10);
-    const suffix = h >= 12 ? "pm" : "am";
-    const hour12 = h % 12 === 0 ? 12 : h % 12;
-    return `${hour12}:00 ${suffix}`;
-  }
-  const {
-    securityDepositFee,
-    lateCheckOutCharges,
-    allTotalCharges,
-    financeFields,
-  } = await getFinanceFields(reservationId);
-
-  async function getFinanceFields(reservationId) {
-    try {
-      const response = await fetch(
-        `https://api.hostaway.com/v1/financeStandardField/reservation/${reservationId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${API_TOKEN}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (!response.ok) {
-        console.error("Failed to fetch reservation details");
-        return {
-          securityDepositFee: "",
-          lateCheckOutCharges: "",
-          allTotalCharges: "",
-          channelId: "",
-          financeFields: {},
-        };
-      }
-
-      const data = await response.json();
-      const reservation = data.result || {};
-
-      // Extract all requested fields
-      const financeFields = {
-        baseRate: reservation.baseRate || 0,
-        cleaningFeeValue: reservation.cleaningFeeValue || 0,
-        additionalCleaningFee: reservation.additionalCleaningFee || 0,
-        midstayCleaningFee: reservation.midstayCleaningFee || 0,
-        otherFees: reservation.otherFees || 0,
-        salesTax: reservation.salesTax || 0,
-        earlyCheckinFee: reservation.earlyCheckinFee || 0,
-        bedLinenFee: reservation.bedLinenFee || 0,
-        extraBedsFee: reservation.extraBedsFee || 0,
-        lateCheckoutFee: reservation.lateCheckoutFee || 0,
-        damageDeposit: reservation.damageDeposit || 0,
-        parkingFee: reservation.parkingFee || 0,
-        serviceFee: reservation.serviceFee || 0,
-        towelChangeFee: reservation.towelChangeFee || 0,
-        allTotalCharges:
-          (reservation.baseRate || 0) +
-          (reservation.cleaningFeeValue || 0) +
-          (reservation.additionalCleaningFee || 0) +
-          (reservation.midstayCleaningFee || 0) +
-          (reservation.otherFees || 0) +
-          (reservation.salesTax || 0) +
-          (reservation.earlyCheckinFee || 0) +
-          (reservation.bedLinenFee || 0) +
-          (reservation.extraBedsFee || 0) +
-          (reservation.lateCheckoutFee || 0) +
-          (reservation.damageDeposit || 0) +
-          (reservation.parkingFee || 0) +
-          (reservation.serviceFee || 0) +
-          (reservation.towelChangeFee || 0),
-        channelId: reservation.channelId,
-      };
-
-      // Log all fields to console
-      // console.log("Finance Fields:", financeFields);
-
-      // Alert for USD reservations
-      if (
-        financeFields.channelId === 2018 ||
-        financeFields.channelId === 2013
-      ) {
-        try {
-          const exchangeResponse = await fetch(exchangerateApi);
-          const exchangeData = await exchangeResponse.json();
-          const usdToPkrRate = exchangeData.conversion_rates.PKR;
-
-          // Create new object with converted values
-          const convertedFields = { ...financeFields };
-          Object.keys(convertedFields).forEach((key) => {
-            if (typeof convertedFields[key] === "number") {
-              convertedFields[key] = Number(
-                (convertedFields[key] * usdToPkrRate).toFixed(2)
-              );
-            }
-          });
-
-          // console.log("Finance Fields (PKR):", convertedFields);
-
-          // Return converted values
-          return {
-            securityDepositFee: convertedFields.otherFees || "",
-            lateCheckOutCharges: convertedFields.lateCheckoutFee || "",
-            allTotalCharges: convertedFields.allTotalCharges || "",
-            financeFields: convertedFields,
-          };
-        } catch (exchangeError) {
-          console.error("Error fetching exchange rate:", exchangeError);
-          // If exchange rate fails, return original USD values
-        }
-      }
-
-      // Return original USD values if not USD reservation
-      return {
-        securityDepositFee: financeFields.otherFees || "",
-        lateCheckOutCharges: financeFields.lateCheckoutFee || "",
-        allTotalCharges: financeFields.allTotalCharges || "",
-        financeFields,
-      };
-    } catch (error) {
-      console.error("Error fetching finance fields:", error);
-      return {
-        securityDepositFee: "",
-        lateCheckOutCharges: "",
-        allTotalCharges: "",
-        financeFields: {},
-      };
-    }
-  }
-  const checkInTime = reservation.checkInTime
-    ? formatTime(reservation.checkInTime)
-    : "";
-  const checkOutTime = reservation.checkOutTime
-    ? formatTime(reservation.checkOutTime)
-    : "";
-  const earlyCheckIn = reservation.earlyCheckIn || "";
-  const smartLockCode = reservation.doorCode || "";
-  let convertedTotalPrice = reservation.totalPrice || "";
-  const currency = reservation.currency || "";
-
-  // Convert currency if it's USD
-  if (currency === "USD" && convertedTotalPrice) {
-    try {
-      const response = await fetch(exchangerateApi);
-      const data = await response.json();
-
-      const usdToPkrRate = data.conversion_rates.PKR;
-      const convertedAmount = (convertedTotalPrice * usdToPkrRate).toFixed(2);
-      convertedTotalPrice = convertedAmount;
-      // console.log(`Converted Amount (PKR): ${convertedTotalPrice}`);
-    } catch (error) {
-      console.error("Currency conversion failed:", error);
-      // If conversion fails, keep the original price
-      convertedTotalPrice = reservation.baseRate || "";
-    }
-  }
-
-  // Format the price with Rs. prefix
-  const formattedPrice = convertedTotalPrice
-    ? `Rs. ${convertedTotalPrice.toLocaleString()}`
-    : "N/A";
-
-  const duration = reservation.nights || "1";
-  const pricePerNight = (convertedTotalPrice / duration).toFixed(2);
-  const comment = reservation.comment || "";
-
-  // Get dates
-  const arrival = new Date(reservation.arrivalDate).toLocaleDateString();
-  const departure = new Date(reservation.departureDate).toLocaleDateString();
+  const departure = reservation.departureDate || "";
+  const checkOutTime = reservation.checkOutTime || "";
 
   // Create print content based on type
   let printContent;
   if (printType === "checkin") {
+    // Fetch reservation data and extract actualCheckInTime
+    const reservationUrl = `https://api.hostaway.com/v1/reservations/${reservationId}`;
+    let actualCheckInTime = null;
+    try {
+      const response = await fetch(reservationUrl, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${API_TOKEN}`,
+        },
+      });
+      const data = await response.json();
+      console.log("Reservation Data:", data);
+      const customFields = data.result?.customFieldValues;
+      if (customFields && Array.isArray(customFields)) {
+        const field = customFields.find(
+          (item) => item.customField?.name === "Actual Check-in Time"
+        );
+        if (field) {
+          actualCheckInTime = field.value;
+          console.log("Actual Check-in Time:", actualCheckInTime);
+        } else {
+          console.log("Actual Check-in Time not found.");
+        }
+      } else {
+        console.log("No custom field values found.");
+      }
+    } catch (error) {
+      console.error("Error fetching reservation data:", error);
+    }
+    // Fetch finance fields
+    const { securityDepositFee } = await getFinanceFields(reservationId);
+
+    const listingMapId =
+      listingsMap.get(reservation.listingMapId) || reservation.listingMapId;
+
+    // Get the listing type from the listings array
+    const listingType =
+      listings.find((l) => l.listingId === reservation.listingMapId)
+        ?.listingType || "N/A";
+
+    // Get additional details from the reservation object
+    const exchangerateApi =
+      "https://v6.exchangerate-api.com/v6/e528361fb75219dbc48899b1/latest/USD";
+    const cnic = reservation.cnic || "";
+    const address = reservation.guestAddress || "";
+    const email = reservation.guestEmail || "";
+    const contact = reservation.phone || "";
+    const adults = reservation.adults || "";
+    const children = reservation.children || "";
+    const vehicleNo = reservation.vehicleNo || "";
+    function formatTime(hour) {
+      if (isNaN(hour)) return "";
+      const h = parseInt(hour, 10);
+      const suffix = h >= 12 ? "pm" : "am";
+      const hour12 = h % 12 === 0 ? 12 : h % 12;
+      return `${hour12}:00 ${suffix}`;
+    }
+    const checkInTime = reservation.checkInTime
+      ? formatTime(reservation.checkInTime)
+      : "";
+    const checkOutTime = reservation.checkOutTime
+      ? formatTime(reservation.checkOutTime)
+      : "";
+    const earlyCheckIn = reservation.earlyCheckIn || "";
+    const smartLockCode = reservation.doorCode || "";
+    let convertedTotalPrice = reservation.totalPrice || "";
+    const currency = reservation.currency || "";
+
+    // Convert currency if it's USD
+    if (currency === "USD" && convertedTotalPrice) {
+      try {
+        const response = await fetch(exchangerateApi);
+        const data = await response.json();
+
+        const usdToPkrRate = data.conversion_rates.PKR;
+        const convertedAmount = (convertedTotalPrice * usdToPkrRate).toFixed(2);
+        convertedTotalPrice = convertedAmount;
+        // console.log(`Converted Amount (PKR): ${convertedTotalPrice}`);
+      } catch (error) {
+        console.error("Currency conversion failed:", error);
+        // If conversion fails, keep the original price
+        convertedTotalPrice = reservation.baseRate || "";
+      }
+    }
+
+    // Format the price with Rs. prefix
+    const formattedPrice = convertedTotalPrice
+      ? `Rs. ${convertedTotalPrice.toLocaleString()}`
+      : "N/A";
+
+    const duration = reservation.nights || "1";
+    const pricePerNight = (convertedTotalPrice / duration).toFixed(2);
+
+    // Get dates
+    const arrival = new Date(reservation.arrivalDate).toLocaleDateString();
+    const departure = new Date(reservation.departureDate).toLocaleDateString();
+
     printContent = `
       <!DOCTYPE html>
       <html>
@@ -919,7 +938,7 @@ async function handlePrint(reservationId, printType) {
             }
             .row .row-field {
               margin-top: 5px;
-            }
+}
             .row .row-field h3 {
               font-size: 10px;
               margin: 4px 0 !important;
@@ -946,6 +965,7 @@ async function handlePrint(reservationId, printType) {
             </div>
             <div class="heading-text">
               <h1>Check-in Form</h1>
+              <p style="text-align: center; font-family: monospace">Actual Check-in Date / Time: ${actualCheckInTime}</p>
             </div>
             <div class="form-container">
               <div class="left-section">
@@ -972,8 +992,6 @@ async function handlePrint(reservationId, printType) {
                 <div class="form-field"><label>Vehicle No:</label><input value="${vehicleNo}" readonly /></div>
                 <div class="form-field"><label>Security Deposit:</label><input value="${securityDepositFee}" readonly /></div>
               </div>
-
-              
             </div>
 
             
@@ -1037,6 +1055,47 @@ async function handlePrint(reservationId, printType) {
       </html>
     `;
   } else if (printType === "checkout") {
+    // Fetch reservation data and extract actualCheckOutTime
+    const reservationUrl = `https://api.hostaway.com/v1/reservations/${reservationId}`;
+    let actualCheckOutTime = null;
+    try {
+      const response = await fetch(reservationUrl, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${API_TOKEN}`,
+        },
+      });
+      const data = await response.json();
+      console.log("Reservation Data:", data);
+      const customFields = data.result?.customFieldValues;
+      if (customFields && Array.isArray(customFields)) {
+        const field = customFields.find(
+          (item) => item.customField?.name === "Actual Check-out Time"
+        );
+        if (field) {
+          actualCheckOutTime = field.value;
+          console.log("Actual Check-out Time:", actualCheckOutTime);
+        } else {
+          console.log("Actual Check-out Time not found.");
+        }
+      } else {
+        console.log("No custom field values found.");
+      }
+    } catch (error) {
+      console.error("Error fetching reservation data:", error);
+    }
+    // Fetch finance fields for checkout
+    const {
+      securityDepositFee,
+      lateCheckOutCharges,
+      allTotalCharges,
+      financeFields,
+    } = await getFinanceFields(reservationId);
+
+    const listingMapId =
+      listingsMap.get(reservation.listingMapId) || reservation.listingMapId;
+
     printContent = `
       <!DOCTYPE html>
 <html lang="en">
@@ -1063,7 +1122,7 @@ async function handlePrint(reservationId, printType) {
       background-color: white;
       border-radius: 5px;
       border: 1px solid lightblue;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     }
     .logo-img {
       display: flex;
@@ -1109,14 +1168,7 @@ async function handlePrint(reservationId, printType) {
       font-size: 14px;
       line-height: 1.5;
     }
-    .info-section .signature-line {
-      display: inline-block;
-      border-bottom: 2px solid #333;
-      width: 200px;
-      height: 20px;
-      margin-bottom: 5px;
-    }
-      .signature-section {
+    .signature-section {
       margin-top: 30px;
       display: flex;
       justify-content: space-between;
@@ -1173,8 +1225,8 @@ async function handlePrint(reservationId, printType) {
       <h1 style="
               font-size: 20px;
               text-align: center;
-              margin: 0;
-              ">Check-out Form</h1>
+              margin: 0;">Check-out Form</h1>
+              <p style="text-align: center; font-family: monospace">Actual Check-out Date / Time: ${actualCheckOutTime}</p>
     </div>
 
     <p>
@@ -1192,16 +1244,19 @@ async function handlePrint(reservationId, printType) {
 
     <div class="info-section">
       <div>
-        <p>Check Out Date & Time: <strong>${departure} & ${checkOutTime}</strong></p>
-        <p>Late Check out Charges (if applicable): <strong>${lateCheckOutCharges}</strong></p>
+        <p>Check Out Date & Time: <strong>${departure} & ${checkOutTime} pm</strong></p>
+        <p>Late Check out Charges (if applicable): <strong>${
+          lateCheckOutCharges || ""
+        }</strong></p>
       </div>
       <div>
-        <p>Any other Charges (if applicable): <strong>${allTotalCharges}*</strong></p>
-        
-        <p>Security Deposit Amount Returned: <strong>${securityDepositFee}</strong></p>
+        <p>Any other Charges (if applicable): <strong>${
+          allTotalCharges || ""
+        }</strong></p>
+        <p>Security Deposit Fee: <strong>${
+          securityDepositFee || ""
+        }</strong></p>
       </div>
-
-      
     </div>
 
     <p>
@@ -1413,8 +1468,21 @@ function showError(message = "Error loading reservations") {
   loading.style.display = "none";
 }
 
-// Fetch and display listings with IDs and names
 async function fetchAndDisplayListings() {
+  const LISTINGS_DATA = {
+    Studio: [288675, 288682, 288690, 323229, 323261, 336255, 383744],
+    "1BR": [
+      307143, 306032, 288691, 305069, 288681, 288726, 288679, 288723, 288678,
+      323258,
+    ],
+    "2BR": [
+      288677, 288684, 288687, 288977, 288689, 288685, 288683, 306543, 288724,
+      378076, 378078,
+    ],
+    "2BR Premium": [305055, 309909, 323227, 288688],
+    "3BR": [288686, 305327, 288676],
+  };
+
   try {
     const response = await fetch("https://api.hostaway.com/v1/listings", {
       headers: {
@@ -1423,34 +1491,492 @@ async function fetchAndDisplayListings() {
       },
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+    if (!response.ok) throw new Error("Failed to fetch listings");
 
     const data = await response.json();
+    const listings = data.result || data || [];
+    const today = new Date().toISOString().split("T")[0];
 
-    let listings = [];
+    const calendarPromises = listings.map(async (listing) => {
+      const id = listing.id;
+      if (!id) return null;
 
-    if (data.result && Array.isArray(data.result)) {
-      listings = data.result;
-    } else if (Array.isArray(data)) {
-      listings = data;
-    } else {
-      console.error("Unexpected response structure:", data);
-      return;
+      try {
+        const calResponse = await fetch(
+          `https://api.hostaway.com/v1/listings/${id}/calendar`,
+          {
+            headers: {
+              Authorization: `Bearer ${API_TOKEN}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (!calResponse.ok) {
+          console.error(`Calendar fetch failed for ID ${id}`);
+          return null;
+        }
+
+        const calData = await calResponse.json();
+        const todayEntry = calData.result?.find(
+          (entry) => entry.date === today
+        );
+        if (todayEntry) {
+          return {
+            id,
+            status: todayEntry.status,
+            date: todayEntry.date,
+          };
+        }
+
+        return null;
+      } catch (err) {
+        console.error(`Error fetching calendar for ID ${id}:`, err);
+        return null;
+      }
+    });
+
+    const results = await Promise.all(calendarPromises);
+    const validResults = results.filter((entry) => entry !== null);
+
+    const total = validResults.length;
+    const reserved = validResults.filter(
+      (entry) => entry.status === "reserved"
+    ).length;
+    const available = validResults.filter(
+      (entry) => entry.status === "available"
+    ).length;
+    const occupancyPercentage = total
+      ? ((reserved / total) * 100).toFixed(1)
+      : 0;
+
+    if (available === 0) {
+      launchConfettiCelebration();
+      triggerFullHouseNotice();
     }
 
-    // listings.forEach((listing) => {
-    //   const id = listing.id || "N/A";
-    //   const mapId = listing.internalListingName || "N/A";
-    //   const name = listing.name || "Unknown Listing";
-    //   listingsMap.set(mapId, name);
-    //   console.log(`Listing ID: ${id}, Listing Name: ${mapId}`);
-    // });
+    // Stats update
+    const dateStat = document.getElementById("dateStat");
+    const totalStat = document.getElementById("totalStat");
+    const reservedStat = document.getElementById("reservedStat");
+    const availableStat = document.getElementById("availableStat");
+    const occupancyStat = document.getElementById("occupancyStat");
+
+    if (
+      dateStat &&
+      totalStat &&
+      reservedStat &&
+      availableStat &&
+      occupancyStat
+    ) {
+      dateStat.querySelector(".value").innerHTML = today;
+      dateStat.querySelector(".value").classList.add("date-value-occupancy");
+
+      anime({
+        targets: totalStat.querySelector(".value"),
+        innerHTML: total,
+        round: 1,
+        easing: "easeOutExpo",
+        duration: 1200,
+      });
+      anime({
+        targets: reservedStat.querySelector(".value"),
+        innerHTML: reserved,
+        round: 1,
+        easing: "easeOutExpo",
+        duration: 1200,
+      });
+      anime({
+        targets: availableStat.querySelector(".value"),
+        innerHTML: available,
+        round: 1,
+        easing: "easeOutExpo",
+        duration: 1200,
+      });
+      anime({
+        targets: occupancyStat.querySelector(".value"),
+        innerHTML: occupancyPercentage + "%",
+        round: 1,
+        easing: "easeOutExpo",
+        duration: 1200,
+      });
+    }
+
+    // Occupancy per category for Donut chart
+    const categoryLabels = Object.keys(LISTINGS_DATA);
+    const categorySeries = categoryLabels.map((category) => {
+      const ids = LISTINGS_DATA[category];
+      const reservedCount = validResults.filter(
+        (entry) => ids.includes(entry.id) && entry.status !== "available"
+      ).length;
+      const totalInCategory = ids.length;
+      return totalInCategory > 0
+        ? parseFloat(((reservedCount / totalInCategory) * 100).toFixed(2))
+        : 0;
+    });
+
+    // Clear previous chart before rendering the new one
+    const chartEl = document.querySelector("#occupancyChart");
+    chartEl.innerHTML = "";
+
+    const ctx = document.createElement("canvas");
+    chartEl.appendChild(ctx);
+
+    const myChart = new Chart(ctx, {
+      type: "doughnut",
+      data: {
+        labels: categoryLabels,
+        datasets: [
+          {
+            data: categorySeries,
+            backgroundColor: [
+              "rgba(75, 192, 192, 0.6)",
+              "rgba(153, 102, 255, 0.6)",
+              "rgba(255, 159, 64, 0.6)",
+              "rgba(54, 162, 235, 0.6)",
+              "rgba(255, 99, 132, 0.6)",
+            ],
+            borderColor: [
+              "rgba(75, 192, 192, 1)",
+              "rgba(153, 102, 255, 1)",
+              "rgba(255, 159, 64, 1)",
+              "rgba(54, 162, 235, 1)",
+              "rgba(255, 99, 132, 1)",
+            ],
+            borderWidth: 1,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        animation: {
+          duration: 1500,
+          easing: "easeInOutQuad",
+          animateRotate: true,
+          animateScale: true,
+        },
+        cutout: "70%",
+        plugins: {
+          legend: {
+            position: "top",
+          },
+          tooltip: {
+            callbacks: {
+              label: function (tooltipItem) {
+                return tooltipItem.raw.toFixed(2) + "%";
+              },
+            },
+          },
+        },
+      },
+    });
+
+    anime({
+      targets: chartEl.querySelector("canvas"),
+      opacity: [0, 1],
+      easing: "easeOutQuad",
+      duration: 1500,
+    });
+
+    // ==== NEW CODE: Display listings inside the dropdowns ====
+
+    categoryLabels.forEach((categoryLabel) => {
+      const listingType = categoryLabel.toLowerCase().replace(/\s+/g, "-"); // e.g., "2BR Premium" -> "2br-premium"
+      const container = document.querySelector(
+        `.hoverable-item[data-type="${listingType}"] .listing-data`
+      );
+
+      if (!container) return;
+
+      const ids = LISTINGS_DATA[categoryLabel];
+
+      const entries = validResults.filter((entry) => ids.includes(entry.id));
+
+      container.innerHTML = "";
+
+      if (entries.length === 0) {
+        container.innerHTML = "<p>No data available</p>";
+        return;
+      }
+
+      // Add heading row
+      const headingDiv = document.createElement("div");
+      headingDiv.style.display = "flex";
+      headingDiv.style.justifyContent = "space-between";
+      headingDiv.style.alignItems = "center";
+      headingDiv.style.marginBottom = "8px";
+      headingDiv.style.fontWeight = "bold";
+      headingDiv.style.color = "#64748b"; // gray-600
+
+      const headingName = document.createElement("span");
+      headingName.textContent = "Listing Name";
+      const headingStatus = document.createElement("span");
+      headingStatus.textContent = "Status";
+
+      headingDiv.appendChild(headingName);
+      headingDiv.appendChild(headingStatus);
+      container.appendChild(headingDiv);
+
+      entries.forEach((entry) => {
+        const listingDetails = listings.find((l) => l.id === entry.id);
+        const listingName = listingDetails
+          ? listingDetails.internalListingName
+          : `ID: ${entry.id}`;
+
+        const div = document.createElement("div");
+        div.classList.add("listing-entry");
+        div.style.display = "flex";
+        div.style.justifyContent = "space-between";
+        div.style.alignItems = "center";
+        div.style.marginBottom = "4px";
+
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = listingName;
+
+        const statusSpan = document.createElement("span");
+        statusSpan.textContent = entry.status;
+        statusSpan.style.color =
+          entry.status === "available"
+            ? "green"
+            : entry.status === "reserved"
+            ? "red"
+            : "gray";
+
+        div.appendChild(nameSpan);
+        div.appendChild(statusSpan);
+
+        container.appendChild(div);
+      });
+    });
   } catch (error) {
     console.error("Error fetching listings:", error);
   }
 }
+
+// Initialize after DOM is loaded
+document.addEventListener("DOMContentLoaded", () => {
+  const todayStr = new Date().toISOString().split("T")[0];
+  fetchReservationsByDate(todayStr);
+});
+
+// 🟢 At load, show today's data
+document.addEventListener("DOMContentLoaded", () => {
+  const todayStr = new Date().toISOString().split("T")[0];
+  fetchReservationsByDate(todayStr);
+});
+
+// 📅 Handle calendar date selection
+document.addEventListener("dateSelected", (e) => {
+  const selectedDate = e.detail.date.toISOString().split("T")[0];
+  fetchReservationsByDate(selectedDate);
+});
+
+// Function to get finance fields
+async function getFinanceFields(reservationId) {
+  try {
+    const response = await fetch(
+      `https://api.hostaway.com/v1/financeStandardField/reservation/${reservationId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      console.error("Failed to fetch reservation details");
+      return {
+        securityDepositFee: "",
+        lateCheckOutCharges: "",
+        allTotalCharges: "",
+        financeFields: {},
+      };
+    }
+
+    const data = await response.json();
+    const reservation = data.result || {};
+
+    // Extract all requested fields
+    const financeFields = {
+      baseRate: reservation.baseRate || 0,
+      cleaningFeeValue: reservation.cleaningFeeValue || 0,
+      additionalCleaningFee: reservation.additionalCleaningFee || 0,
+      midstayCleaningFee: reservation.midstayCleaningFee || 0,
+      otherFees: reservation.otherFees || 0,
+      salesTax: reservation.salesTax || 0,
+      earlyCheckinFee: reservation.earlyCheckinFee || 0,
+      bedLinenFee: reservation.bedLinenFee || 0,
+      extraBedsFee: reservation.extraBedsFee || 0,
+      lateCheckoutFee: reservation.lateCheckoutFee || 0,
+      damageDeposit: reservation.damageDeposit || 0,
+      parkingFee: reservation.parkingFee || 0,
+      serviceFee: reservation.serviceFee || 0,
+      towelChangeFee: reservation.towelChangeFee || 0,
+      allTotalCharges:
+        (reservation.baseRate || 0) +
+        (reservation.cleaningFeeValue || 0) +
+        (reservation.additionalCleaningFee || 0) +
+        (reservation.midstayCleaningFee || 0) +
+        (reservation.otherFees || 0) +
+        (reservation.salesTax || 0) +
+        (reservation.earlyCheckinFee || 0) +
+        (reservation.bedLinenFee || 0) +
+        (reservation.extraBedsFee || 0) +
+        (reservation.lateCheckoutFee || 0) +
+        (reservation.damageDeposit || 0) +
+        (reservation.parkingFee || 0) +
+        (reservation.serviceFee || 0) +
+        (reservation.towelChangeFee || 0),
+      channelId: reservation.channelId,
+    };
+
+    // Log all fields to console
+    // console.log("Finance Fields:", financeFields);
+
+    // Alert for USD reservations
+    if (financeFields.channelId === 2018 || financeFields.channelId === 2013) {
+      try {
+        const exchangeResponse = await fetch(
+          "https://v6.exchangerate-api.com/v6/e528361fb75219dbc48899b1/latest/USD"
+        );
+        const exchangeData = await exchangeResponse.json();
+        const usdToPkrRate = exchangeData.conversion_rates.PKR;
+
+        // Create new object with converted values
+        const convertedFields = { ...financeFields };
+        Object.keys(convertedFields).forEach((key) => {
+          if (typeof convertedFields[key] === "number") {
+            convertedFields[key] = Number(
+              (convertedFields[key] * usdToPkrRate).toFixed(2)
+            );
+          }
+        });
+
+        // console.log("Finance Fields (PKR):", convertedFields);
+
+        // Return converted values
+        return {
+          securityDepositFee: convertedFields.otherFees || "",
+          lateCheckOutCharges: convertedFields.lateCheckoutFee || "",
+          allTotalCharges: convertedFields.allTotalCharges || "",
+          financeFields: convertedFields,
+        };
+      } catch (exchangeError) {
+        console.error("Error fetching exchange rate:", exchangeError);
+        // If exchange rate fails, return original USD values
+      }
+    }
+
+    // Return original USD values if not USD reservation
+    return {
+      securityDepositFee: financeFields.otherFees || "",
+      lateCheckOutCharges: financeFields.lateCheckoutFee || "",
+      allTotalCharges: financeFields.allTotalCharges || "",
+      financeFields,
+    };
+  } catch (error) {
+    console.error("Error fetching finance fields:", error);
+    return {
+      securityDepositFee: "",
+      lateCheckOutCharges: "",
+      allTotalCharges: "",
+      financeFields: {},
+    };
+  }
+}
+
+// Function to find double bookings
+function findDoubleBookings(reservations, targetDate) {
+  // Return empty array if no reservations or invalid data
+  if (!reservations || !Array.isArray(reservations)) {
+    return [];
+  }
+
+  // Group reservations by listingMapId and date
+  const groupedReservations = {};
+
+  // Process each reservation
+  reservations.forEach((reservation) => {
+    if (!reservation) return;
+
+    // Only consider reservations with status 'new' or 'modified'
+    if (reservation.status !== "new" && reservation.status !== "modified") {
+      return;
+    }
+
+    try {
+      const arrivalDateStr = new Date(reservation.arrivalDate)
+        .toISOString()
+        .split("T")[0];
+
+      // Only process if arrival date matches target date
+      if (arrivalDateStr !== targetDate) {
+        return;
+      }
+
+      const listingMapId = reservation.listingMapId;
+
+      if (!groupedReservations[listingMapId]) {
+        groupedReservations[listingMapId] = {};
+      }
+
+      if (!groupedReservations[listingMapId][arrivalDateStr]) {
+        groupedReservations[listingMapId][arrivalDateStr] = [];
+      }
+
+      groupedReservations[listingMapId][arrivalDateStr].push(reservation);
+    } catch (error) {
+      console.error("Error processing reservation:", error);
+    }
+  });
+
+  // Find listings with multiple reservations on the same date
+  const doubleBookings = [];
+
+  // Safely iterate over grouped reservations
+  Object.entries(groupedReservations || {}).forEach(([listingMapId, dates]) => {
+    Object.entries(dates || {}).forEach(([date, reservations]) => {
+      if (Array.isArray(reservations) && reservations.length > 1) {
+        doubleBookings.push({
+          listingMapId,
+          date,
+          reservations: reservations.map((res) => ({
+            hostawayReservationId: res?.hostawayReservationId,
+            guestName: res?.guestName,
+            listingMapId: res?.listingMapId,
+            listingName:
+              listingsMap.get(res?.listingMapId) || res?.listingMapId,
+            arrivalDate: res?.arrivalDate,
+            departureDate: res?.departureDate,
+            nights:
+              res?.departureDate && res?.arrivalDate
+                ? Math.ceil(
+                    (new Date(res.departureDate) - new Date(res.arrivalDate)) /
+                      (1000 * 60 * 60 * 24)
+                  )
+                : 0,
+            status: res?.status,
+          })),
+        });
+      }
+    });
+  });
+
+  return doubleBookings;
+}
+
+// 🟢 At load, show today's data
+document.addEventListener("DOMContentLoaded", () => {
+  const todayStr = new Date().toISOString().split("T")[0];
+  fetchReservationsByDate(todayStr);
+});
+
+// 📅 Handle calendar date selection
+document.addEventListener("dateSelected", (e) => {
+  const selectedDate = e.detail.date.toISOString().split("T")[0];
+  fetchReservationsByDate(selectedDate);
+});
 
 // Function to fetch and display reservations for a given date (YYYY-MM-DD)
 async function fetchReservationsByDate(targetDateStr) {
@@ -1481,7 +2007,7 @@ async function fetchReservationsByDate(targetDateStr) {
     });
 
     // Categorize and display reservations
-    displayReservations(filteredReservations, targetDateStr);
+    displayReservations(filteredReservations);
 
     // Staying Guests for selected date
     const selectedDate = new Date(targetDateStr);
@@ -1510,200 +2036,89 @@ async function fetchReservationsByDate(targetDateStr) {
 
     // Update staying stats
     document.getElementById("totalStaying").textContent = stayingGuests.length;
-    document.getElementById("avgStay").textContent = Math.round(
-      stayingGuests.reduce((sum, guest) => {
-        const checkIn = new Date(guest.arrivalDate);
-        const checkOut = new Date(guest.departureDate);
-        return sum + Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
-      }, 0) / stayingGuests.length || 0
-    );
+    // document.getElementById("avgStay").textContent = Math.round(
+    //   stayingGuests.reduce((sum, guest) => {
+    //     const checkIn = new Date(guest.arrivalDate);
+    //     const checkOut = new Date(guest.departureDate);
+    //     return sum + Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+    //   }, 0) / stayingGuests.length || 0
+    // );
 
     displayStayingGuests(stayingGuests);
 
     // Update total reservation count
-    document.querySelector("#totalReservations .value").textContent =
-      filteredReservations.length;
-
-    anime({
-      targets: "#totalReservations .value",
-      innerHTML: [0, filteredReservations.length],
-      round: 1,
-      duration: 800,
-      easing: "easeOutExpo",
-    });
+    const stats = {
+      total: filteredReservations.length,
+    };
+    animateStats(stats);
   } catch (err) {
     console.error("Error fetching reservations by date:", err);
   }
 }
 
-// Modify displayReservations to use specific date context
-function displayReservations(reservations, selectedDateStr) {
-  const categorized = categorizeReservationsForDate(
-    reservations,
-    selectedDateStr
-  );
-
-  // Log expected check-ins data
-  // console.log(
-  //   "Expected Check-ins for",
-  //   selectedDateStr,
-  //   ":",
-  //   categorized.expectedCheckIns.map((res) => ({
-  //     reservationId: res.hostawayReservationId,
-  //     guestName: res.guestName,
-  //     checkInDate: res.arrivalDate,
-  //     checkOutDate: res.departureDate,
-  //     nights: res.nights,
-  //     address: res.guestAddress,
-  //     adults: res.adults,
-  //     children: res.children,
-  //     contact: res.phone,
-  //     checkinTime: res.checkInTime,
-  //     checkoutTime: res.checkOutTime,
-  //     totalAmount: res.totalPrice,
-  //     listingMapId: res.listingMapId,
-  //     email: res.guestEmail,
-  //   }))
-  // );
-
-  [
-    "actualCheckIns",
-    "actualCheckOuts",
-    "expectedCheckIns",
-    "expectedCheckOuts",
-  ].forEach((section) => {
-    document.getElementById(`${section}List`).innerHTML = "";
-  });
-
-  Object.entries(categorized).forEach(([section, list]) => {
-    const container = document.getElementById(`${section}List`);
-    if (container) {
-      list.forEach((reservation) => {
-        const card = createReservationCard(reservation, section);
-        container.appendChild(card);
-      });
-    }
-  });
-
-  document.querySelector("#totalReservations .value").textContent =
-    categorized.expectedCheckIns.length;
-
-  document.getElementById("todayCheckInsCount").textContent =
-    categorized.expectedCheckIns.length;
-  document.getElementById("todayCheckOutsCount").textContent =
-    categorized.expectedCheckOuts.length;
-}
-
-// Categorize reservations specific to selected date
-function categorizeReservationsForDate(reservations, selectedDateStr) {
-  return reservations.reduce(
-    (acc, res) => {
-      const arrivalDateStr = new Date(res.arrivalDate)
-        .toISOString()
-        .split("T")[0];
-      const departureDateStr = new Date(res.departureDate)
-        .toISOString()
-        .split("T")[0];
-      const status = res.status;
-
-      if (arrivalDateStr === selectedDateStr && status === "checked_in") {
-        acc.actualCheckIns.push(res);
-      }
-
-      if (departureDateStr === selectedDateStr && status === "checked_out") {
-        acc.actualCheckOuts.push(res);
-      }
-
-      if (
-        arrivalDateStr === selectedDateStr &&
-        status !== "checked_in" &&
-        status !== "checked_out"
-      ) {
-        acc.expectedCheckIns.push(res);
-      }
-
-      if (
-        departureDateStr === selectedDateStr &&
-        status !== "checked_out" &&
-        status !== "checked_in"
-      ) {
-        acc.expectedCheckOuts.push(res);
-      }
-
-      return acc;
-    },
-    {
-      actualCheckIns: [],
-      actualCheckOuts: [],
-      expectedCheckIns: [],
-      expectedCheckOuts: [],
-    }
-  );
-}
-
 // Function to display double bookings
-function displayDoubleBookings(doubleBookings) {
-  const container = document.getElementById("doubleBookingsList");
-  container.innerHTML = "";
+// function displayDoubleBookings(doubleBookings) {
+//   const container = document.getElementById("doubleBookingsList");
+//   container.innerHTML = "";
 
-  if (doubleBookings.length === 0) {
-    const noDoubleBookings = document.createElement("div");
-    noDoubleBookings.className = "no-double-bookings";
-    noDoubleBookings.textContent = "No double bookings found.";
-    container.appendChild(noDoubleBookings);
-    return;
-  }
+//   if (doubleBookings.length === 0) {
+//     const noDoubleBookings = document.createElement("div");
+//     noDoubleBookings.className = "no-double-bookings";
+//     noDoubleBookings.textContent = "No double bookings found.";
+//     container.appendChild(noDoubleBookings);
+//     return;
+//   }
 
-  doubleBookings.forEach((doubleBooking) => {
-    const card = document.createElement("div");
-    card.className = "double-booking-card";
+//   doubleBookings.forEach((doubleBooking) => {
+//     const card = document.createElement("div");
+//     card.className = "double-booking-card";
 
-    const listingName =
-      listingsMap.get(doubleBooking.listingMapId) || doubleBooking.listingMapId;
+//     const listingName =
+//       listingsMap.get(doubleBooking.listingMapId) || doubleBooking.listingMapId;
 
-    card.innerHTML = `
-      <div class="guest-header">
-        <div class="guest-col hostaway-id">Hostaway ID</div>
-        <div class="guest-col name">Guest Name</div>
-        <div class="guest-col listing-name">Listing Name</div>
-        <div class="guest-col nights">Nights</div>
-        <div class="guest-col status">Status</div>
-        <div class="guest-col duration">Staying Duration</div>
-      </div>
-      ${doubleBooking.reservations
-        .map(
-          (res) => `
-        <div class="guest-card">
-          <div class="guest-col hostaway-id">${res.hostawayReservationId}</div>
-          <div class="guest-col name">${res.guestName}</div>
-          <div class="guest-col listing-name">${
-            listingsMap.get(res.listingMapId) || res.listingMapId
-          }</div>
-          <div class="guest-col nights">${res.nights} nights</div>
-          <div class="guest-col status">${res.status || "unknown"}</div>
-          <div class="guest-col duration">
-            <div class="date-pair">
-              <div class="date-label">Arrival:</div>
-              <div class="date-value">${new Date(
-                res.arrivalDate
-              ).toLocaleDateString()}</div>
-            </div>
-            <div class="date-pair">
-              <div class="date-label">Departure:</div>
-              <div class="date-value">${new Date(
-                res.departureDate
-              ).toLocaleDateString()}</div>
-            </div>
-          </div>
-        </div>
-      `
-        )
-        .join("")}
-    `;
+//     card.innerHTML = `
+//       <div class="guest-header">
+//         <div class="guest-col hostaway-id">Hostaway ID</div>
+//         <div class="guest-col name">Guest Name</div>
+//         <div class="guest-col listing-name">Listing Name</div>
+//         <div class="guest-col nights">Nights</div>
+//         <div class="guest-col status">Status</div>
+//         <div class="guest-col duration">Staying Duration</div>
+//       </div>
+//       ${doubleBooking.reservations
+//         .map(
+//           (res) => `
+//         <div class="guest-card">
+//           <div class="guest-col hostaway-id">${res.hostawayReservationId}</div>
+//           <div class="guest-col name">${res.guestName}</div>
+//           <div class="guest-col listing-name">${
+//             listingsMap.get(res.listingMapId) || res.listingMapId
+//           }</div>
+//           <div class="guest-col nights">${res.nights} nights</div>
+//           <div class="guest-col status">${res.status || "unknown"}</div>
+//           <div class="guest-col duration">
+//             <div class="date-pair">
+//               <div class="date-label">Arrival:</div>
+//               <div class="date-value">${new Date(
+//                 res.arrivalDate
+//               ).toLocaleDateString()}</div>
+//             </div>
+//             <div class="date-pair">
+//               <div class="date-label">Departure:</div>
+//               <div class="date-value">${new Date(
+//                 res.departureDate
+//               ).toLocaleDateString()}</div>
+//             </div>
+//           </div>
+//         </div>
+//       `
+//         )
+//         .join("")}
+//     `;
 
-    container.appendChild(card);
-  });
-}
+//     container.appendChild(card);
+//   });
+// }
 
 // Calendar functionality
 const calendarButton = document.getElementById("calendarButton");
@@ -1827,7 +2242,7 @@ function selectDate(date) {
     const doubleBookings = findDoubleBookings(reservations, selectedDateStr);
 
     // Display the double bookings
-    displayDoubleBookings(doubleBookings);
+    // displayDoubleBookings(doubleBookings);
   });
 }
 

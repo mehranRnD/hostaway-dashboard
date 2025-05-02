@@ -10,17 +10,18 @@
       href="https://i.ibb.co/vC3k9ZXv/favicon-32x32.png"
       type="image/png"
     />
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
   </head>
   <body>
     <div class="dashboard-container">
       <div class="header">
         <div class="header-left">
-          <h1>HostAway Dashboard</h1>
-          <p>Your reservations at a glance</p>
+          <img src="img/namuve-logo.jpg" alt="namuve-logo" />
         </div>
-
+        <div class="header-center">
+          <div class="text-container">
+            <h1>Hostaway Dashboard</h1>
+          </div>
+        </div>
         <div class="header-right">
           <div class="calendar-button-container">
             <button class="calendar-button" id="calendarButton">
@@ -95,15 +96,90 @@
         <div class="stat-card" id="totalReservations">
           <h2>Total Reservations</h2>
           <div class="value">0</div>
+          <div class="dropdown-container">
+            <!-- Hoverable elements for different listing types -->
+            <div class="hoverable-item" data-type="studio">
+              <label>Studio</label>
+              <div class="hover-content">
+                <div class="listing-data">
+                  <!-- Studio listings will be dynamically populated here -->
+                </div>
+              </div>
+            </div>
+            <div class="hoverable-item" data-type="1br">
+              <label>1BR</label>
+              <div class="hover-content">
+                <div class="listing-data">
+                  <!-- 1BR listings will be dynamically populated here -->
+                </div>
+              </div>
+            </div>
+            <div class="hoverable-item" data-type="2br">
+              <label>2BR</label>
+              <div class="hover-content">
+                <div class="listing-data">
+                  <!-- 2BR listings will be dynamically populated here -->
+                </div>
+              </div>
+            </div>
+            <div class="hoverable-item" data-type="2br-premium">
+              <label>2BR Premium</label>
+              <div class="hover-content">
+                <div class="listing-data">
+                  <!-- 2BR Premium listings will be dynamically populated here -->
+                </div>
+              </div>
+            </div>
+            <div class="hoverable-item" data-type="3br">
+              <label>3BR</label>
+              <div class="hover-content">
+                <div class="listing-data">
+                  <!-- 3BR listings will be dynamically populated here -->
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <!-- <div class="stat-card" id="upcomingReservations">
-          <h2>Upcoming</h2>
-          <div class="value">0</div>
+
+        <div class="stat-card" id="occupancyGraph">
+          <h2>Today's Occupancy Graph</h2>
+          <div id="occupancyChart"></div>
+          <!-- changed from <canvas> -->
         </div>
+
         <div class="stat-card" id="completedReservations">
-          <h2>Completed</h2>
-          <div class="value">0</div>
-        </div> -->
+          <h2>Occupancy Percentage</h2>
+          <div class="stats-container">
+            <!-- First row -->
+            <div class="stat-group">
+              <div class="stat-item" id="dateStat">
+                <span class="label">Date</span>
+                <span class="value">-</span>
+              </div>
+              <div class="stat-item" id="totalStat">
+                <span class="label">Total Apartments</span>
+                <span class="value">0</span>
+              </div>
+            </div>
+
+            <!-- Second row -->
+            <div class="stat-group">
+              <div class="stat-item" id="reservedStat">
+                <span class="label">Reserved</span>
+                <span class="value">0</span>
+              </div>
+              <div class="stat-item" id="availableStat">
+                <span class="label">Available</span>
+                <span class="value">0</span>
+              </div>
+
+              <div class="stat-item" id="occupancyStat">
+                <span class="label">Occupancy %</span>
+                <span class="value">0%</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Main Body Sections -->
@@ -114,7 +190,6 @@
             <!-- Actual check-ins will be added here -->
           </div>
         </div>
-        
 
         <div class="section" id="actualCheckOuts">
           <h2>Actual Check-outs</h2>
@@ -155,11 +230,11 @@
             <h3>Total Staying</h3>
             <div class="value" id="totalStaying">0</div>
           </div>
-          <div class="stat-card">
+          <!-- <div class="stat-card">
             <h3>Average Stay</h3>
-            <div class="value" id="avgStay">0</div>
+            <div class="value" id="avgStay"></div>
             <div class="label">Nights</div>
-          </div>
+          </div> -->
         </div>
 
         <div class="guest-list" id="stayingGuestList">
@@ -175,12 +250,11 @@
       </div>
 
       <!-- Double Bookings Section -->
-      <div class="section" id="doubleBookings">
+      <!-- <div class="section" id="doubleBookings">
         <h2>Double Bookings</h2>
         <div class="double-bookings-list" id="doubleBookingsList">
-          <!-- Double bookings will be added here -->
         </div>
-      </div>
+      </div> -->
 
       <div class="loading" id="loading" style="display: none">
         <div>Loading reservations...</div>
@@ -190,10 +264,18 @@
         <div>Error loading reservations</div>
       </div>
     </div>
-    <!-- External anime.js library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <div id="fullHouseNotice" style="display: none">
+      <div id="thread"></div>
+      <div id="noticeBoard">Namuve you got a full house, enjoy!</div>
+    </div>
 
+    <!-- External libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <script src="script.js"></script>
-    <script src="actual_script.js"></script>
   </body>
 </html>
