@@ -16,9 +16,14 @@ app.use(express.static(path.join(__dirname, "public")));
 app.post("/send-to-slack", async (req, res) => {
   try {
     const slackWebhookUrl =
-      "https://hooks.slack.com/services/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";
-      // "https://hooks.slack.com/services/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"; // Testing
+      "https://hooks.slack.com/services/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";
     const { text } = req.body;
+
+    console.log("Sending Slack notification:", text);
+
+    if (!text) {
+      return res.status(400).json({ error: "Text message is required" });
+    }
 
     const response = await fetch(slackWebhookUrl, {
       method: "POST",
@@ -28,14 +33,23 @@ app.post("/send-to-slack", async (req, res) => {
       body: JSON.stringify({ text }),
     });
 
+    console.log("Slack response status:", response.status);
+
     if (!response.ok) {
-      throw new Error("Slack webhook request failed");
+      const errorText = await response.text();
+      console.error("Slack webhook error response:", errorText);
+      throw new Error(
+        `Slack webhook request failed with status ${response.status}: ${errorText}`
+      );
     }
 
     res.status(200).json({ message: "Notification sent to Slack" });
   } catch (error) {
     console.error("Error sending to Slack:", error);
-    res.status(500).json({ error: "Failed to send Slack notification" });
+    res.status(500).json({
+      error: "Failed to send notification to Slack",
+      details: error.message,
+    });
   }
 });
 

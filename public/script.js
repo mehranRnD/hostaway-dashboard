@@ -487,7 +487,7 @@ function handleCheckIn(reservation) {
 
   // Send Slack notification
   const slackMessage = {
-    text: `📥 *Check-In Alert!*
+    text: `📥 *Actual Check-In Alert!*
 
 👤 *${guestName}* has checked in to 🏠 *${apartmentName}* at 🕒 *${formattedDateTime}*.
 
@@ -663,7 +663,7 @@ function handleCheckOut(reservation) {
 
   // Slack notification
   const slackMessage = {
-    text: `📤 *Check-Out Alert!*\n\n👤 *${guestName}* has checked out from 🏠 *${apartmentName}* at 🕒 *${formattedDateTime}*.\n\n✅ Please ensure all final checks are completed.\n                               __________________________________________________________      \n`,
+    text: `📤 *Actual Check-Out Alert!*\n\n👤 *${guestName}* has checked out from 🏠 *${apartmentName}* at 🕒 *${formattedDateTime}*.\n\n✅ Please ensure all final checks are completed.\n                               __________________________________________________________      \n`,
   };
 
   fetch("http://localhost:3000/send-to-slack", {
