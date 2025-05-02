@@ -19,7 +19,7 @@ app.use(express.static(path.join(__dirname, "public")));
 app.post("/send-to-slack", async (req, res) => {
   try {
     const slackWebhookUrl =
-      "https://hooks.slack.com/services/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";
+      "https://hooks.slack.com/services/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";
     const { text } = req.body;
 
     console.log("Sending Slack notification:", text);
@@ -55,6 +55,9 @@ app.post("/send-to-slack", async (req, res) => {
     });
   }
 });
+
+
+
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));

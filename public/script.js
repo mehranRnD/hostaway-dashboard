@@ -592,7 +592,7 @@ function handleCheckIn(reservation) {
 
       // Add event listener
       printButton.addEventListener("click", () => {
-        handlePrint(reservationId, "checkin");
+        handlePrint(reservation.hostawayReservationId, "checkin");
       });
     }
     updateUI();
@@ -715,9 +715,8 @@ function handleCheckOut(reservation) {
     updateUI();
   }
   // Reload the page
-setTimeout(() => {
+
   window.location.reload();
-}, 5000);
 }
 
 // Add event listener for check-in and check-out buttons
@@ -828,7 +827,7 @@ async function handlePrint(reservationId, printType) {
       ? formatTime(reservation.checkOutTime)
       : "";
     const earlyCheckIn = reservation.earlyCheckIn || "";
-    const smartLockCode = reservation.doorCode || "";
+    const smartLockCode = reservation.smartLockCode || "";
     let convertedTotalPrice = reservation.totalPrice || "";
     const currency = reservation.currency || "";
 
@@ -993,7 +992,7 @@ async function handlePrint(reservationId, printType) {
                 <div class="form-field"><label>Total Amount:</label><input value="${formattedPrice}" readonly /></div>
                 <div class="form-field"><label>Early Check-in:</label><input value="${earlyCheckIn}" readonly /></div>
                 <div class="form-field"><label>Price/Night:</label><input value="${pricePerNight}" readonly /></div>
-                <div class="form-field"><label>Smart Lock Code:</label><input value="${smartLockCode}" readonly /></div>
+                <div class="form-field"><label>Smart Lock Code:</label><input value="" readonly /></div>
               </div>
               <div class="right-section">
                 <div class="form-field"><label>Unit:</label><input value="${listingMapId}" readonly /></div>
