@@ -54,7 +54,7 @@ const API_TOKEN =
 const SERVER_URL =
   window.location.hostname === "localhost" ||
   window.location.hostname === "127.0.0.1"
-    ? "http://localhost:3000"
+    ? "http://localhost:5000"
     : "http://159.223.201.156:3000";
 
 // Show loading state
