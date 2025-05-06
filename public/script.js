@@ -988,7 +988,10 @@ async function handlePrint(reservationId, printType) {
               />
             </div>
             <div class="heading-text">
-              <h1>Check-in Form</h1>
+              <h2 style="
+              font-size: 20px;
+              text-align: center;
+              margin: 0;"> ${guestName}'s Check-in Form</h2>
               <p style="text-align: center; font-family: monospace">Actual Check-in Date / Time: ${actualCheckInTime}</p>
             </div>
             <div class="form-container">
@@ -1245,11 +1248,11 @@ async function handlePrint(reservationId, printType) {
     <div class="logo-img">
       <img src="img/namuve-logo.jpg" alt="Namuve Logo">
     </div>
-    <div >
-      <h1 style="
+    <div class="heading-text">
+      <h2 style="
               font-size: 20px;
               text-align: center;
-              margin: 0;">Check-out Form</h1>
+              margin: 0;"> ${guestName}'s Check-out Form</h2>
               <p style="text-align: center; font-family: monospace">Actual Check-out Date / Time: ${actualCheckOutTime}</p>
     </div>
 
