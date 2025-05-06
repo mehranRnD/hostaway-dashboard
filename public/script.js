@@ -721,8 +721,9 @@ function handleCheckOut(reservation) {
     updateUI();
   }
   // Reload the page
-
-  // window.location.reload();
+setTimeout(() => {
+  window.location.reload();
+}, 3000);
 }
 
 // Add event listener for check-in and check-out buttons
