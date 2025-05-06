@@ -94,8 +94,11 @@
       <!-- Top Dashboard Section -->
       <div class="stats-grid">
         <div class="stat-card" id="totalReservations">
-          <h2>Total Reservations</h2>
-          <div class="value">0</div>
+          <h2>Apartment Status</h2>
+          <div style="display: none" class="value">0</div>
+          <p style="text-align: center; margin: 30px 0px 30px 0px">
+            Hover or click to see apartment status
+          </p>
           <div class="dropdown-container">
             <!-- Hoverable elements for different listing types -->
             <div class="hoverable-item" data-type="studio">
@@ -140,7 +143,7 @@
             </div>
           </div>
         </div>
-
+        <div class="slack-icon"></div>
         <div class="stat-card" id="occupancyGraph">
           <h2>Today's Occupancy Graph</h2>
           <div id="occupancyChart"></div>
@@ -223,7 +226,7 @@
       </div>
 
       <!-- Staying Guests Section -->
-      <div class="section" id="stayingGuests">
+      <div class="section" id="stayingGuests" style="display: none">
         <h2>Staying Guests</h2>
         <div class="stats-grid">
           <div class="stat-card">
@@ -267,6 +270,14 @@
     <div id="fullHouseNotice" style="display: none">
       <div id="thread"></div>
       <div id="noticeBoard">Namuve you got a full house, enjoy!</div>
+    </div>
+
+    <!-- Slack Icon -->
+    <div class="slack-icon">
+      <a href="https://namuve.slack.com/archives/C083M9C2Z8A" target="_blank">
+        <img src="img/slack-logo.png" alt="Slack" />
+        <span>Got any query?</span>
+      </a>
     </div>
 
     <!-- External libraries -->
