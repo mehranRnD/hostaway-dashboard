@@ -28,11 +28,7 @@ const listings = [
   { listingId: 309909, listingName: "GF-06 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 323227, listingName: "4F-42 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 323229, listingName: "1F-10 (A) (S)", listingType: "Studio" },
-  {
-    listingId: 323258,
-    listingName: "1F-10 (B) (1B)",
-    listingType: "1 Bed Room",
-  },
+  { listingId: 323258, listingName: "1F-10 (B) (1B)", listingType: "1 Bed Room" },
   { listingId: 323261, listingName: "1F-10 (C) (S)", listingType: "Studio" },
   { listingId: 336255, listingName: "8F-80 (S)", listingType: "Studio" },
   { listingId: 378076, listingName: "6F-60 (2B)", listingType: "2 Bed Rooms" },
