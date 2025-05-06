@@ -301,12 +301,18 @@ function displayReservations(reservations) {
   // Update the count display
   const todayCheckInsCount = document.getElementById("todayCheckInsCount");
   if (todayCheckInsCount) {
-    todayCheckInsCount.textContent = categorized.expectedCheckIns.length;
+    const expectedCheckIns = document.querySelectorAll(
+      "#expectedCheckInsList .reservation-card"
+    );
+    todayCheckInsCount.textContent = expectedCheckIns.length;
   }
 
   const todayCheckOutsCount = document.getElementById("todayCheckOutsCount");
   if (todayCheckOutsCount) {
-    todayCheckOutsCount.textContent = categorized.expectedCheckOuts.length;
+    const expectedCheckOuts = document.querySelectorAll(
+      "#expectedCheckOutsList .reservation-card"
+    );
+    todayCheckOutsCount.textContent = expectedCheckOuts.length;
   }
 }
 
@@ -716,7 +722,7 @@ function handleCheckOut(reservation) {
   }
   // Reload the page
 
-  window.location.reload();
+  // window.location.reload();
 }
 
 // Add event listener for check-in and check-out buttons
@@ -1498,12 +1504,15 @@ async function fetchAndDisplayListings() {
   };
 
   try {
-    const response = await fetch("https://api.hostaway.com/v1/listings", {
-      headers: {
-        Authorization: `Bearer ${API_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-    });
+    const response = await fetch(
+      "https://api.hostaway.com/v1/listings?country=Pakistan",
+      {
+        headers: {
+          Authorization: `Bearer ${API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
     if (!response.ok) throw new Error("Failed to fetch listings");
 

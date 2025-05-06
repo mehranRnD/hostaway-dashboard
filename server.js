@@ -19,7 +19,7 @@ app.use(express.static(path.join(__dirname, "public")));
 app.post("/send-to-slack", async (req, res) => {
   try {
     const slackWebhookUrl =
-      "https://hooks.slack.com/services/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";
+      "https://hooks.slack.com/services/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";
     const { text } = req.body;
 
     console.log("Sending Slack notification:", text);
