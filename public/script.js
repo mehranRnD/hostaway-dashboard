@@ -602,6 +602,9 @@ function handleCheckIn(reservation) {
       });
     }
     updateUI();
+    setTimeout(() => {
+      window.location.reload();
+    }, 3000);
   }
 }
 
