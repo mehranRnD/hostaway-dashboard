@@ -28,7 +28,11 @@ const listings = [
   { listingId: 309909, listingName: "GF-06 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 323227, listingName: "4F-42 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 323229, listingName: "1F-10 (A) (S)", listingType: "Studio" },
-  { listingId: 323258, listingName: "1F-10 (B) (1B)", listingType: "1 Bed Room" },
+  {
+    listingId: 323258,
+    listingName: "1F-10 (B) (1B)",
+    listingType: "1 Bed Room",
+  },
   { listingId: 323261, listingName: "1F-10 (C) (S)", listingType: "Studio" },
   { listingId: 336255, listingName: "8F-80 (S)", listingType: "Studio" },
   { listingId: 378076, listingName: "6F-60 (2B)", listingType: "2 Bed Rooms" },
@@ -720,9 +724,9 @@ function handleCheckOut(reservation) {
     updateUI();
   }
   // Reload the page
-setTimeout(() => {
-  window.location.reload();
-}, 3000);
+  setTimeout(() => {
+    window.location.reload();
+  }, 3000);
 }
 
 // Add event listener for check-in and check-out buttons
@@ -770,7 +774,8 @@ async function handlePrint(reservationId, printType) {
   if (printType === "checkin") {
     // Fetch reservation data and extract actualCheckInTime
     const reservationUrl = `https://api.hostaway.com/v1/reservations/${reservationId}`;
-    let actualCheckInTime = null;
+    let actualCheckInTime = "";
+    let cnic = "";
     try {
       const response = await fetch(reservationUrl, {
         method: "GET",
@@ -779,18 +784,44 @@ async function handlePrint(reservationId, printType) {
           Authorization: `Bearer ${API_TOKEN}`,
         },
       });
+
+      if (!response.ok) {
+        console.error("Failed to fetch reservation details");
+        return {
+          securityDepositFee: "",
+          lateCheckOutCharges: "",
+          allTotalCharges: "",
+          financeFields: {},
+        };
+      }
+
       const data = await response.json();
       console.log("Reservation Data:", data);
       const customFields = data.result?.customFieldValues;
+      console.log("Custom Fields:", customFields);
       if (customFields && Array.isArray(customFields)) {
-        const field = customFields.find(
+        // Get Actual Check-in Time
+        const checkInField = customFields.find(
           (item) => item.customField?.name === "Actual Check-in Time"
         );
-        if (field) {
-          actualCheckInTime = field.value;
+        if (checkInField) {
+          actualCheckInTime = checkInField.value;
           console.log("Actual Check-in Time:", actualCheckInTime);
         } else {
           console.log("Actual Check-in Time not found.");
+        }
+
+        // Get ID Card/Passport Number
+        const cnicField = customFields.find(
+          (item) =>
+            item.customFieldId === 62073 &&
+            item.customField?.name === "ID card Number/ Passport number"
+        );
+        if (cnicField) {
+          cnic = cnicField.value;
+          console.log("CNIC:", cnic);
+        } else {
+          console.log("CNIC not found.");
         }
       } else {
         console.log("No custom field values found.");
@@ -812,7 +843,6 @@ async function handlePrint(reservationId, printType) {
     // Get additional details from the reservation object
     const exchangerateApi =
       "https://v6.exchangerate-api.com/v6/e528361fb75219dbc48899b1/latest/USD";
-    const cnic = reservation.cnic || "";
     const address = reservation.guestAddress || "";
     const email = reservation.guestEmail || "";
     const contact = reservation.phone || "";
@@ -949,6 +979,7 @@ async function handlePrint(reservationId, printType) {
               padding-bottom: 10px;
             }
             ul li {
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
               font-size: 11px;
               line-height: 1.2;
               margin-bottom: 2px;
@@ -960,11 +991,11 @@ async function handlePrint(reservationId, printType) {
               margin-top: 5px;
 }
             .row .row-field h3 {
-              font-size: 10px;
+              font-size: 13px;
               margin: 4px 0 !important;
             }
             .row .row-field h4 {
-              font-size: 10px;
+              font-size: 12px;
               margin: 4px 0 !important;
               text-align: right;
             }
@@ -979,8 +1010,8 @@ async function handlePrint(reservationId, printType) {
             </div>
             <div class="logo-img">
               <img
-                src="img/namuve-logo.jpg"
-                alt="logo"
+                src="img/booknrent-logo.png"
+                alt="Booknrent Logo"
               />
             </div>
             <div class="heading-text">
@@ -1020,7 +1051,7 @@ async function handlePrint(reservationId, printType) {
             
             <div class="space" style="padding: 15px">
               <div class="terms">
-                <h3 style="margin: 0px; text-align: left">Terms and Conditions</h3>
+                <h3 style="margin: -15px 0px -15px 0px; text-align: left">Terms and Conditions</h3>
                 <ul>
                   <li>Original CNIC or Passport is required at the time of Check-in.</li>
                   <li>Only one car parking is allowed inside the building per apartment.</li>
@@ -1034,28 +1065,49 @@ async function handlePrint(reservationId, printType) {
                   <li>Guests are requested to submit any complaints regarding the quality of services at the reception desk.</li>
                   <li>Money/Jewelry or other valuables brought to the property are at the guest's sole risk.</li>
                 </ul>
+                <p style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 13px;
+    margin-bottom: 2px;
+    text-align: center;">I have read and understood the terms and conditions and agreed to them and i will be responsible for any damage or loss to the property.</p>
               </div>
               <div class="row">
                 <div class="row-field" style="display: flex; justify-content: space-between; align-items: center; margin-top: 40px;">
                   <div class="inner-col" style="text-align: left">
-                    <div style="border-bottom: 1px solid black; width: 200px; margin-bottom: 5px;"></div>
+                    <div style="border-bottom: 1px solid black; width:140px; margin-bottom: 5px;"></div>
                     <h3>Management Team</h3>
                   </div>
                   <div class="inner-col" style="text-align: right">
-                    <div style="border-bottom: 1px solid black; width: 200px; margin-bottom: 5px; margin-left: auto;"></div>
+                    <div style="border-bottom: 1px solid black; width: 140px; margin-bottom: 5px; margin-left: auto;"></div>
                     <h3>Guest Signature</h3>
                   </div>
                 </div>
-                <div class="row-field" style="display: flex; justify-content: space-between; align-items: center; margin-top: 30px;">
-                  <div class="inner-col" style="text-align: left">
-                    <h3>CHECK OUT TIME 12:00 NOON</h3>
-                    <h4>Late Check Out charges applicable @ Rs. 1000 per hour</h4>
-                  </div>
-                  <div class="inner-col" style="text-align: right">
+                <div style="text-align: center; margin-top: -40px;">
+  <h5 style="margin: 0; font-size: 17px;">CHECK OUT TIME 12:00 NOON</h5>
+  <p style="margin: 4px 0 0; font-size: 11px;">(Late Check Out charges applicable @ Rs. 1000 per hour)</p>
+</div>
+
+
+                <div style="
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0px 5px 0px 4px;
+    margin-top: 25px;
+    margin-right: -17px;
+    margin-left: -17px;
+    font-size: 12px;
+    font-family: 'monospace';
+    background-color:rgb(0, 0, 0);
+    color: white;
+    ">
+                  <div style="text-align: left;">
                     <h4>0300-0454711</h4>
+                  </div>
+                  <div style="text-align: right;">
                     <h4>30-A, BLOCK L, GULBERG 3, LAHORE</h4>
                   </div>
                 </div>
+
               </div>
             </div>
           </div>
@@ -1080,7 +1132,8 @@ async function handlePrint(reservationId, printType) {
   } else if (printType === "checkout") {
     // Fetch reservation data and extract actualCheckOutTime
     const reservationUrl = `https://api.hostaway.com/v1/reservations/${reservationId}`;
-    let actualCheckOutTime = null;
+    let actualCheckOutTime = "";
+    let idCardNumber = "";
     try {
       const response = await fetch(reservationUrl, {
         method: "GET",
@@ -1089,18 +1142,44 @@ async function handlePrint(reservationId, printType) {
           Authorization: `Bearer ${API_TOKEN}`,
         },
       });
+
+      if (!response.ok) {
+        console.error("Failed to fetch reservation details");
+        return {
+          securityDepositFee: "",
+          lateCheckOutCharges: "",
+          allTotalCharges: "",
+          financeFields: {},
+        };
+      }
+
       const data = await response.json();
       console.log("Reservation Data:", data);
       const customFields = data.result?.customFieldValues;
+      console.log("Custom Fields:", customFields);
       if (customFields && Array.isArray(customFields)) {
-        const field = customFields.find(
+        // Get Actual Check-out Time
+        const checkOutField = customFields.find(
           (item) => item.customField?.name === "Actual Check-out Time"
         );
-        if (field) {
-          actualCheckOutTime = field.value;
+        if (checkOutField) {
+          actualCheckOutTime = checkOutField.value;
           console.log("Actual Check-out Time:", actualCheckOutTime);
         } else {
           console.log("Actual Check-out Time not found.");
+        }
+
+        // Get ID Card/Passport Number
+        const idField = customFields.find(
+          (item) =>
+            item.customFieldId === 62073 &&
+            item.customField?.name === "ID card Number/ Passport number"
+        );
+        if (idField) {
+          idCardNumber = idField.value;
+          console.log("ID Card/Passport Number:", idCardNumber);
+        } else {
+          console.log("ID Card/Passport Number not found.");
         }
       } else {
         console.log("No custom field values found.");
@@ -1242,7 +1321,7 @@ async function handlePrint(reservationId, printType) {
   </button>
 </div>
     <div class="logo-img">
-      <img src="img/namuve-logo.jpg" alt="Namuve Logo">
+      <img src="img/booknrent-logo.png" alt="Booknrent Logo">
     </div>
     <div class="heading-text">
       <h2 style="
