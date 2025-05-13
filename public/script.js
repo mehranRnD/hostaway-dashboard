@@ -234,7 +234,8 @@ function displayStayingGuests(guests) {
 
 // Function to categorize reservations
 function categorizeReservations(reservations) {
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date();
+  const todayStr = today.toISOString().split("T")[0];
 
   const categorized = {
     expectedCheckIns: [],
@@ -259,20 +260,43 @@ function categorizeReservations(reservations) {
       .toISOString()
       .split("T")[0];
 
-    if (checkInsFromStorage[resId] && !checkOutsFromStorage[resId]) {
-      categorized.actualCheckIns.push(reservation);
-    } else if (checkOutsFromStorage[resId]) {
+    // If checked out, always show in actual checkouts
+    if (checkOutsFromStorage[resId]) {
       categorized.actualCheckOuts.push(reservation);
-    } else {
-      if (arrivalDate === today) categorized.expectedCheckIns.push(reservation);
-      if (departureDate === today)
+    }
+    // If checked in but not checked out
+    else if (checkInsFromStorage[resId]) {
+      const hasSameDayCheckout =
+        reservation.customFieldValues?.some(
+          (field) =>
+            field.customFieldId === 77304 &&
+            field.customField?.name === "Same day Check-out" &&
+            field.value === "Yes"
+        ) || false;
+
+      categorized.actualCheckIns.push(reservation);
+
+      // ✅ Show in Expected Check-Out if field is Yes — ignore departureDate
+      if (hasSameDayCheckout) {
         categorized.expectedCheckOuts.push(reservation);
+      } else if (departureDate === todayStr) {
+        categorized.expectedCheckOuts.push(reservation);
+      }
+    }
+
+    // Not checked in yet
+    else {
+      if (arrivalDate === todayStr) {
+        categorized.expectedCheckIns.push(reservation);
+      }
+      if (departureDate === todayStr) {
+        categorized.expectedCheckOuts.push(reservation);
+      }
     }
   });
 
   return categorized;
 }
-
 // Function to display reservations in their respective sections
 function displayReservations(reservations) {
   const categorized = categorizeReservations(reservations);
@@ -406,9 +430,7 @@ function createReservationCard(reservation, sectionType) {
       <div class="detail-row">
         <span>Listing:</span>
         <span>${
-          listingsMap.get(reservation.listingMapId) ||
-          reservation.listingMapId ||
-          "N/A"
+          listingsMap.get(reservation.listingMapId) || reservation.listingMapId
         }</span>
       </div>
       <div class="detail-row">
@@ -500,13 +522,7 @@ function handleCheckIn(reservation) {
 
   // Send Slack notification
   const slackMessage = {
-    text: `📥 *Actual Check-In Alert!*
-
-👤 *${guestName}* has checked in to 🏠 *${apartmentName}* at 🕒 *${formattedDateTime}*.
-
-✅ Welcome to the Namuve!
-                               __________________________________________________________      
-`,
+    text: `📥 *Actual Check-In Alert!*\n\n👤 *${guestName}* has checked in to 🏠 *${apartmentName}* at 🕒 *${formattedDateTime}*.\n\n✅ Welcome to the Namuve!\n                               __________________________________________________________      \n`,
   };
 
   fetch(`${SERVER_URL}/send-to-slack`, {
@@ -549,7 +565,6 @@ function handleCheckIn(reservation) {
         "Check-in marked for reservation:",
         reservation.hostawayReservationId
       );
-      updateUI(); // Refresh the UI after successful update
     })
     .catch((error) => {
       console.error("Error updating reservation:", error);
@@ -564,6 +579,22 @@ function handleCheckIn(reservation) {
   }
 
   if (reservationCard) {
+    // Update the button before moving the card
+    const checkInBtn = reservationCard.querySelector(".check-in-btn");
+    if (checkInBtn) {
+      checkInBtn.textContent = "Print Check-in";
+      checkInBtn.classList.remove("check-in-btn");
+      checkInBtn.classList.add("print-btn");
+      checkInBtn.setAttribute("data-type", "checkin");
+
+      // Update the click handler for the button
+      checkInBtn.onclick = (e) => {
+        e.stopPropagation();
+        handlePrint(reservation.hostawayReservationId, "checkin");
+      };
+    }
+
+    // Move the card to actual check-ins section
     actualCheckInsList.appendChild(reservationCard);
 
     // Update section type
@@ -572,39 +603,7 @@ function handleCheckIn(reservation) {
       sectionTypeElement.textContent = "Actual Check-in";
     }
 
-    // Remove check-in button
-    const checkInBtn = reservationCard.querySelector(".check-in-btn");
-    if (checkInBtn) {
-      checkInBtn.remove();
-    }
-
-    // Add print button if it doesn't exist
-    const printBtn = reservationCard.querySelector(".print-btn");
-    if (!printBtn) {
-      const printButton = document.createElement("button");
-      printButton.className = "print-btn";
-      printButton.setAttribute(
-        "data-res-id",
-        reservation.hostawayReservationId
-      );
-      printButton.setAttribute("data-type", "checkin");
-      printButton.textContent = "Print Check-in Form";
-
-      // Add to actions div
-      const actionsDiv = reservationCard.querySelector(".reservation-actions");
-      if (actionsDiv) {
-        actionsDiv.appendChild(printButton);
-      }
-
-      // Add event listener
-      printButton.addEventListener("click", () => {
-        handlePrint(reservation.hostawayReservationId, "checkin");
-      });
-    }
     updateUI();
-    setTimeout(() => {
-      window.location.reload();
-    }, 3000);
   }
 }
 
@@ -720,13 +719,19 @@ function handleCheckOut(reservation) {
     `.reservation-card[data-res-id="${reservationId}"]`
   );
   if (card) {
+    // Update the button before moving the card
+    const checkOutBtn = card.querySelector(".check-out-btn");
+    if (checkOutBtn) {
+      checkOutBtn.textContent = "Print Check-out";
+      checkOutBtn.classList.remove("check-out-btn");
+      checkOutBtn.classList.add("print-btn");
+      checkOutBtn.setAttribute("data-type", "checkout");
+    }
+
+    // Move the card to actual check-outs section
     document.querySelector("#actualCheckOutsList").appendChild(card);
     updateUI();
   }
-  // Reload the page
-  setTimeout(() => {
-    window.location.reload();
-  }, 3000);
 }
 
 // Add event listener for check-in and check-out buttons
@@ -776,6 +781,9 @@ async function handlePrint(reservationId, printType) {
     const reservationUrl = `https://api.hostaway.com/v1/reservations/${reservationId}`;
     let actualCheckInTime = "";
     let cnic = "";
+    let address = "";
+    let vehicleNumber = "";
+    let earlyCheckIn = "";
     try {
       const response = await fetch(reservationUrl, {
         method: "GET",
@@ -799,6 +807,7 @@ async function handlePrint(reservationId, printType) {
       console.log("Reservation Data:", data);
       const customFields = data.result?.customFieldValues;
       console.log("Custom Fields:", customFields);
+
       if (customFields && Array.isArray(customFields)) {
         // Get Actual Check-in Time
         const checkInField = customFields.find(
@@ -823,6 +832,58 @@ async function handlePrint(reservationId, printType) {
         } else {
           console.log("CNIC not found.");
         }
+
+        // Get Address
+        const addressField = customFields.find(
+          (item) =>
+            item.customFieldId === 62915 && item.customField?.name === "Address"
+        );
+        if (addressField) {
+          address = addressField.value;
+          console.log("Address:", address);
+        } else {
+          console.log("Address not found.");
+        }
+
+        // Get Vehicle Number
+        const vehicleNumberField = customFields.find(
+          (item) =>
+            item.customFieldId === 62072 &&
+            item.customField?.name === "Vehicle Number"
+        );
+        if (vehicleNumberField) {
+          vehicleNumber = vehicleNumberField.value;
+          console.log("Vehicle Number:", vehicleNumber);
+        } else {
+          console.log("Vehicle Number not found.");
+        }
+
+        // Get Early Check-in
+        const earlyCheckInField = customFields.find(
+          (item) =>
+            item.customFieldId === 75222 &&
+            item.customField?.name === "Early Checkin Charges"
+        );
+        if (earlyCheckInField) {
+          earlyCheckIn = earlyCheckInField.value;
+          console.log("Early Check-in:", earlyCheckIn);
+        } else {
+          console.log("Early Check-in not found.");
+        }
+
+        // Get Same Day Check-out
+        const sameDayCheckoutField = customFields.find(
+          (item) =>
+            item.customFieldId === 77304 && // Make sure this matches your actual ID
+            item.customField?.name === "Same day Check-out"
+        );
+
+        if (sameDayCheckoutField) {
+          const sameDayCheckoutValue = sameDayCheckoutField.value; // extract the value
+          console.log("Same Day Check-out:", sameDayCheckoutValue); // will log "Yes" or "No"
+        } else {
+          console.log("Same Day Check-out not found.");
+        }
       } else {
         console.log("No custom field values found.");
       }
@@ -843,12 +904,10 @@ async function handlePrint(reservationId, printType) {
     // Get additional details from the reservation object
     const exchangerateApi =
       "https://v6.exchangerate-api.com/v6/e528361fb75219dbc48899b1/latest/USD";
-    const address = reservation.guestAddress || "";
     const email = reservation.guestEmail || "";
     const contact = reservation.phone || "";
-    const adults = reservation.adults || "";
+    const adults = reservation.numberOfGuests || "";
     const children = reservation.children || "";
-    const vehicleNo = reservation.vehicleNo || "";
     function formatTime(hour) {
       if (isNaN(hour)) return "";
       const h = parseInt(hour, 10);
@@ -862,8 +921,7 @@ async function handlePrint(reservationId, printType) {
     const checkOutTime = reservation.checkOutTime
       ? formatTime(reservation.checkOutTime)
       : "";
-    const earlyCheckIn = reservation.earlyCheckIn || "";
-    const smartLockCode = reservation.smartLockCode || "";
+    const channelName = reservation.channelName || "";
     let convertedTotalPrice = reservation.totalPrice || "";
     const currency = reservation.currency || "";
 
@@ -1032,7 +1090,7 @@ async function handlePrint(reservationId, printType) {
                 <div class="form-field"><label>Total Amount:</label><input value="${formattedPrice}" readonly /></div>
                 <div class="form-field"><label>Early Check-in:</label><input value="${earlyCheckIn}" readonly /></div>
                 <div class="form-field"><label>Price/Night:</label><input value="${pricePerNight}" readonly /></div>
-                <div class="form-field"><label>Smart Lock Code:</label><input value="" readonly /></div>
+                <div class="form-field"><label>Channel <br> ID:</label><input value="${channelName}" readonly /></div>
               </div>
               <div class="right-section">
                 <div class="form-field"><label>Unit:</label><input value="${listingMapId}" readonly /></div>
@@ -1043,7 +1101,7 @@ async function handlePrint(reservationId, printType) {
                 <div class="form-field"><label>Check-in Time:</label><input value="${checkInTime}" readonly /></div>
                 <div class="form-field"><label>Check-out Date:</label><input value="${departure}" readonly /></div>
                 <div class="form-field"><label>Check-out Time:</label><input value="${checkOutTime}" readonly /></div>
-                <div class="form-field"><label>Vehicle No:</label><input value="${vehicleNo}" readonly /></div>
+                <div class="form-field"><label>Vehicle No:</label><input value="${vehicleNumber}" readonly /></div>
                 <div class="form-field"><label>Security Deposit:</label><input value="${securityDepositFee}" readonly /></div>
               </div>
             </div>
@@ -1068,7 +1126,7 @@ async function handlePrint(reservationId, printType) {
                 <p style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     font-size: 13px;
     margin-bottom: 2px;
-    text-align: center;">I have read and understood the terms and conditions and agreed to them and i will be responsible for any damage or loss to the property.</p>
+    text-align: center;">I have read and understand the terms and conditions and agree to them and I will be responsible for any damage or loss to the property as per list attached.</p>
               </div>
               <div class="row">
                 <div class="row-field" style="display: flex; justify-content: space-between; align-items: center; margin-top: 40px;">
@@ -1104,7 +1162,7 @@ async function handlePrint(reservationId, printType) {
                     <h4>0300-0454711</h4>
                   </div>
                   <div style="text-align: right;">
-                    <h4>30-A, BLOCK L, GULBERG 3, LAHORE</h4>
+                    <h4>30-A, Block L, Gulberg 3, Lahore</h4>
                   </div>
                 </div>
 
@@ -1134,6 +1192,7 @@ async function handlePrint(reservationId, printType) {
     const reservationUrl = `https://api.hostaway.com/v1/reservations/${reservationId}`;
     let actualCheckOutTime = "";
     let idCardNumber = "";
+    let lateCheckOutCharges = "";
     try {
       const response = await fetch(reservationUrl, {
         method: "GET",
@@ -1181,6 +1240,19 @@ async function handlePrint(reservationId, printType) {
         } else {
           console.log("ID Card/Passport Number not found.");
         }
+
+        // Get Late Checkout Charges
+        const lateCheckoutField = customFields.find(
+          (item) =>
+            item.customFieldId === 75221 &&
+            item.customField?.name === "Late Checkout Charges"
+        );
+        if (lateCheckoutField) {
+          console.log("Late Checkout Charges:", lateCheckoutField.value);
+          lateCheckOutCharges = lateCheckoutField.value;
+        } else {
+          console.log("Late Checkout Charges not found.");
+        }
       } else {
         console.log("No custom field values found.");
       }
@@ -1190,10 +1262,14 @@ async function handlePrint(reservationId, printType) {
     // Fetch finance fields for checkout
     const {
       securityDepositFee,
-      lateCheckOutCharges,
+      lateCheckOutCharges: financeLateCheckoutCharges,
       allTotalCharges,
       financeFields,
     } = await getFinanceFields(reservationId);
+
+    // Initialize lateCheckOutCharges with finance fields value or empty string
+    lateCheckOutCharges =
+      financeLateCheckoutCharges || lateCheckOutCharges || "";
 
     const listingMapId =
       listingsMap.get(reservation.listingMapId) || reservation.listingMapId;
@@ -1231,7 +1307,7 @@ async function handlePrint(reservationId, printType) {
       justify-content: center;
       width: 100%;
       height: 60px;
-      margin: 10px auto;
+      margin: 10px 0px 20px 0px;
     }
     .logo-img img {
       height: 100%;
@@ -1245,7 +1321,7 @@ async function handlePrint(reservationId, printType) {
     }
     p {
       line-height: 1.6;
-      font-size: 14px;
+      font-size: 17px;
     }
     ul {
       list-style: none;
@@ -1253,23 +1329,12 @@ async function handlePrint(reservationId, printType) {
       margin: 10px 0;
     }
     ul li {
-      margin: 5px 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       font-size: 13px;
+      line-height: 1.2;
+      margin-bottom: 2px;
     }
-    .info-section {
-      margin-top: 20px;
-      display: block;
-      width: 100%;
-    }
-    .info-section div {
-      width: 100%;
-      margin-bottom: 15px;
-    }
-    .info-section p {
-      margin: 10px 0;
-      font-size: 14px;
-      line-height: 1.5;
-    }
+  
     .signature-section {
       margin-top: 30px;
       display: flex;
@@ -1296,19 +1361,20 @@ async function handlePrint(reservationId, printType) {
   
     margin: 10px;
     padding: 10px;
-    text-align: left;         /* aligns the content inside the box to the left */
-    width: max-content;       /* shrink-wrap the content or adjust as needed */
+    text-align: left;         
+    width: max-content;       
     margin-left: auto;
 }
 
     .charges-breakdown p {
       margin: 5px 0;
-      font-size: 8px;
+      font-size: 12px;
       color: #333;
     }
     .charges-breakdown p:first-child {
       font-weight: bold;
       color: #2c3e50;
+      font-size: 12px;
     }
   </style>
 </head>
@@ -1336,37 +1402,82 @@ async function handlePrint(reservationId, printType) {
       I have checked the apartment for any personal belongings, including but not limited to:
     </p>
 
-    <ul>
-      <li>• Clothes</li>
-      <li>• Jewelry</li>
-      <li>• Cash</li>
-      <li>• Electronics</li>
-      <li>• Other valuables</li>
-    </ul>
-
-    <div class="info-section">
-      <div>
-        <p>Check Out Date & Time: <strong>${departure} & ${checkOutTime} pm</strong></p>
-        <p>Late Check out Charges (if applicable): <strong>${
-          lateCheckOutCharges || ""
-        }</strong></p>
-      </div>
-      <div>
-        <p>Any other Charges (if applicable): <strong>${
-          allTotalCharges || ""
-        }</strong></p>
-        <p>Security Deposit Fee: <strong>${
-          securityDepositFee || ""
-        }</strong></p>
-      </div>
+    <div class="single-line-layout">
+  <div class="items-list">
+    <div class="list-item">• Clothes</div>
+    <div class="list-item">• Jewelry</div>
+    <div class="list-item">• Cash</div>
+    <div class="list-item">• Electronics</div>
+    <div class="list-item">• Other valuables</div>
+  </div>
+  <div class="info-fields">
+    <div class="field-group">
+      <span class="field-label">Check Out Date & Time:</span>
+      <span class="field-value">${departure} & ${checkOutTime} pm</span>
     </div>
+    <div class="field-group">
+      <span class="field-label">Late Check out Charges (if applicable):</span>
+      <span class="field-value">${lateCheckOutCharges || "0"}</span>
+    </div>
+    <div class="field-group">
+      <span class="field-label">Any other Charges (if applicable):</span>
+      <span class="field-value">${allTotalCharges || "0"}</span>
+    </div>
+    <div class="field-group">
+      <span class="field-label">Security Deposit Amount Returned:</span>
+      <span class="field-value">${securityDepositFee || "0"}</span>
+    </div>
+  </div>
+</div>
 
-    <p>
-      I have found all of my belongings and have taken them with me. I understand that the Apartment management/host is not responsible for any valuables that are left behind.
-    </p>
+<style>
+  .single-line-layout {
+    display: flex;
+    gap: 20px;
+    margin: 25px 0;
+  }
 
-    <p>
-      I have signed the document to acknowledge that I have checked the apartment for any personal belongings, and that I have taken all of my belongings with me.
+  .items-list {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .list-item {
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  .info-fields {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .field-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .field-label {
+    font-size: 13px;
+    white-space: nowrap;
+    min-width: 200px;
+  }
+
+  .field-value {
+    font-size: 13px;
+    font-weight: bold;
+    white-space: nowrap;
+  }
+</style>
+
+    <p style="font-size: 17px;">
+      I have found all of my belongings and have taken them with me. <br>
+       I understand that the Apartment management/host is not responsible for any valuables that are left behind.
     </p>
 
     <div class="signature-section">
@@ -2081,6 +2192,12 @@ document.addEventListener("DOMContentLoaded", () => {
 document.addEventListener("dateSelected", (e) => {
   const selectedDate = e.detail.date.toISOString().split("T")[0];
   fetchReservationsByDate(selectedDate);
+});
+
+// Initialize after DOM is loaded
+document.addEventListener("DOMContentLoaded", () => {
+  const todayStr = new Date().toISOString().split("T")[0];
+  fetchReservationsByDate(todayStr);
 });
 
 // Function to fetch and display reservations for a given date (YYYY-MM-DD)
