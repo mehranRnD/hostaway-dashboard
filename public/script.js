@@ -1183,7 +1183,7 @@ async function handlePrint(reservationId, printType) {
                 <p style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     font-size: 13px;
     margin-bottom: 2px;
-    text-align: center;">I have read and understand the terms and conditions and agree to them and I will be responsible for any damage or loss to the property as per list attached.</p>
+    text-align: center;">I have read and understand the terms and conditions and agree to them. <br> I will be responsible for any damage or loss to the property as per list attached.</p>
               </div>
               <div class="row">
                 <div class="row-field" style="display: flex; justify-content: space-between; align-items: center; margin-top: 40px;">
@@ -1248,7 +1248,7 @@ async function handlePrint(reservationId, printType) {
     // Fetch reservation data and extract actualCheckOutTime
     const reservationUrl = `https://api.hostaway.com/v1/reservations/${reservationId}`;
     let actualCheckOutTime = "";
-    let idCardNumber = "";
+    let damageCharges = "";
     let lateCheckOutCharges = "";
     try {
       const response = await fetch(reservationUrl, {
@@ -1285,17 +1285,17 @@ async function handlePrint(reservationId, printType) {
           console.log("Actual Check-out Time not found.");
         }
 
-        // Get ID Card/Passport Number
-        const idField = customFields.find(
+        // Get Damage Charges
+        const damageChargesField = customFields.find(
           (item) =>
-            item.customFieldId === 62073 &&
-            item.customField?.name === "ID card Number/ Passport number"
+            item.customFieldId === 75219 &&
+            item.customField?.name === "Damage Charges"
         );
-        if (idField) {
-          idCardNumber = idField.value;
-          console.log("ID Card/Passport Number:", idCardNumber);
+        if (damageChargesField) {
+          damageCharges = damageChargesField.value;
+          console.log("Damage Charges:", damageCharges);
         } else {
-          console.log("ID Card/Passport Number not found.");
+          console.log("Damage Charges not found.");
         }
 
         // Get Late Checkout Charges
@@ -1649,6 +1649,11 @@ async function handlePrint(reservationId, printType) {
                     ? `<p>• Towel Change Fee: ${financeFields.towelChangeFee.toFixed(
                         2
                       )}</p>`
+                    : ""
+                }
+                ${
+                  damageCharges > 0
+                    ? `<p>• Damage Deposit: ${damageCharges}</p>`
                     : ""
                 }
               </div>`
