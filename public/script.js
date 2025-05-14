@@ -38,6 +38,11 @@ const listings = [
   { listingId: 378076, listingName: "6F-60 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 378078, listingName: "6F-57 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 383744, listingName: "5F-53 (1B)", listingType: "1 Bed Room" },
+  {
+    listingId: 387834,
+    listingName: "Upper Crest (1B) UAE",
+    listingType: "1 Bed Room",
+  },
 ];
 
 // Maps listingId to listing name
@@ -252,6 +257,8 @@ function categorizeReservations(reservations) {
   );
 
   reservations.forEach((reservation) => {
+    if (!reservation) return;
+
     const resId = reservation.hostawayReservationId;
     const arrivalDate = new Date(reservation.arrivalDate)
       .toISOString()
@@ -314,12 +321,12 @@ function displayReservations(reservations) {
   // Display each section
   Object.entries(categorized).forEach(([section, reservations]) => {
     const container = document.getElementById(`${section}List`);
-    if (container) {
-      reservations.forEach((reservation) => {
-        const card = createReservationCard(reservation, section);
-        container.appendChild(card);
-      });
-    }
+    if (!container) return;
+
+    reservations.forEach((reservation) => {
+      const card = createReservationCard(reservation, section);
+      container.appendChild(card);
+    });
   });
 
   // Update the count display
@@ -586,12 +593,6 @@ function handleCheckIn(reservation) {
       checkInBtn.classList.remove("check-in-btn");
       checkInBtn.classList.add("print-btn");
       checkInBtn.setAttribute("data-type", "checkin");
-
-      // Update the click handler for the button
-      checkInBtn.onclick = (e) => {
-        e.stopPropagation();
-        handlePrint(reservation.hostawayReservationId, "checkin");
-      };
     }
 
     // Move the card to actual check-ins section
@@ -645,7 +646,6 @@ function updateUI() {
   }
 }
 
-// Function to handle check-out
 function handleCheckOut(reservation) {
   const reservationId = reservation.hostawayReservationId;
   const now = new Date();
@@ -722,39 +722,71 @@ function handleCheckOut(reservation) {
     // Update the button before moving the card
     const checkOutBtn = card.querySelector(".check-out-btn");
     if (checkOutBtn) {
-      checkOutBtn.textContent = "Print Check-out";
-      checkOutBtn.classList.remove("check-out-btn");
-      checkOutBtn.classList.add("print-btn");
-      checkOutBtn.setAttribute("data-type", "checkout");
+      // Create a new button to replace the old one
+      const printBtn = document.createElement("button");
+      printBtn.className = "print-btn";
+      printBtn.textContent = "Print Check-out";
+      printBtn.setAttribute("data-res-id", reservationId);
+      printBtn.setAttribute("data-type", "checkout");
+
+      // Replace the check-out button with the print button
+      checkOutBtn.parentNode.replaceChild(printBtn, checkOutBtn);
     }
 
     // Move the card to actual check-outs section
-    document.querySelector("#actualCheckOutsList").appendChild(card);
+    const actualCheckOutsList = document.querySelector("#actualCheckOutsList");
+    if (actualCheckOutsList) {
+      actualCheckOutsList.appendChild(card);
+    }
     updateUI();
   }
 }
 
 // Add event listener for check-in and check-out buttons
 document.addEventListener("DOMContentLoaded", () => {
-  document.addEventListener("click", (e) => {
-    if (e.target.classList.contains("check-in-btn")) {
-      const reservationId = e.target.getAttribute("data-res-id");
-      if (reservationId) {
-        handleCheckIn(reservationId);
+  document.addEventListener(
+    "click",
+    (e) => {
+      // Handle check-in button
+      if (e.target.classList.contains("check-in-btn")) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        const reservationId = e.target.getAttribute("data-res-id");
+        if (reservationId) {
+          handleCheckIn({ hostawayReservationId: reservationId });
+        }
+        return false;
       }
-    } else if (e.target.classList.contains("check-out-btn")) {
-      const reservationId = e.target.getAttribute("data-res-id");
-      if (reservationId) {
-        handleCheckOut(reservationId);
+      // Handle check-out button
+      else if (e.target.classList.contains("check-out-btn")) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        const reservationId = e.target.getAttribute("data-res-id");
+        if (reservationId) {
+          // Get the full reservation object from the card
+          const card = document.querySelector(
+            `.reservation-card[data-res-id="${reservationId}"]`
+          );
+          if (card) {
+            const reservation = JSON.parse(card.dataset.reservation || "{}");
+            handleCheckOut(reservation);
+          } else {
+            handleCheckOut({ hostawayReservationId: reservationId });
+          }
+        }
+        return false;
       }
-    } else if (e.target.classList.contains("print-btn")) {
-      const reservationId = e.target.getAttribute("data-res-id");
-      const printType = e.target.getAttribute("data-type");
-      if (reservationId) {
-        handlePrint(reservationId, printType);
+      // Handle print button
+      else if (e.target.classList.contains("print-btn")) {
+        const reservationId = e.target.getAttribute("data-res-id");
+        const printType = e.target.getAttribute("data-type");
+        if (reservationId) {
+          handlePrint(reservationId, printType);
+        }
       }
-    }
-  });
+    },
+    true
+  ); // Use capture phase to handle the event first
 });
 
 // Function to handle print
@@ -870,7 +902,19 @@ async function handlePrint(reservationId, printType) {
         } else {
           console.log("Early Check-in not found.");
         }
-
+        // Get Damage Charges
+        const damageChargesField = customFields.find(
+          (item) =>
+            item.customFieldId === 75219 &&
+            item.customField?.name === "Damage Charges"
+        );
+        let damageCharges = null;
+        if (damageChargesField) {
+          damageCharges = damageChargesField.value;
+          console.log("Damage Charges:", damageCharges);
+        } else {
+          console.log("Damage Charges not found.");
+        }
         // Get Same Day Check-out
         const sameDayCheckoutField = customFields.find(
           (item) =>
@@ -902,8 +946,10 @@ async function handlePrint(reservationId, printType) {
         ?.listingType || "N/A";
 
     // Get additional details from the reservation object
-    const exchangerateApi =
+    const usdExchangeRateApi =
       "https://v6.exchangerate-api.com/v6/e528361fb75219dbc48899b1/latest/USD";
+    const aedExchangeRateApi =
+      "https://v6.exchangerate-api.com/v6/e528361fb75219dbc48899b1/latest/AED";
     const email = reservation.guestEmail || "";
     const contact = reservation.phone || "";
     const adults = reservation.numberOfGuests || "";
@@ -925,16 +971,27 @@ async function handlePrint(reservationId, printType) {
     let convertedTotalPrice = reservation.totalPrice || "";
     const currency = reservation.currency || "";
 
-    // Convert currency if it's USD
-    if (currency === "USD" && convertedTotalPrice) {
+    // Convert currency if it's USD or AED
+    if (convertedTotalPrice) {
       try {
-        const response = await fetch(exchangerateApi);
-        const data = await response.json();
+        let exchangeRate = 1; // Default rate if no conversion needed
 
-        const usdToPkrRate = data.conversion_rates.PKR;
-        const convertedAmount = (convertedTotalPrice * usdToPkrRate).toFixed(2);
-        convertedTotalPrice = convertedAmount;
-        // console.log(`Converted Amount (PKR): ${convertedTotalPrice}`);
+        if (currency === "USD") {
+          const response = await fetch(usdExchangeRateApi);
+          const data = await response.json();
+          exchangeRate = data.conversion_rates.PKR;
+        } else if (currency === "AED") {
+          const response = await fetch(aedExchangeRateApi);
+          const data = await response.json();
+          exchangeRate = data.conversion_rates.PKR;
+        }
+
+        if (currency === "USD" || currency === "AED") {
+          const convertedAmount = (convertedTotalPrice * exchangeRate).toFixed(
+            2
+          );
+          convertedTotalPrice = convertedAmount;
+        }
       } catch (error) {
         console.error("Currency conversion failed:", error);
         // If conversion fails, keep the original price
@@ -1076,7 +1133,7 @@ async function handlePrint(reservationId, printType) {
               <h2 style="
               font-size: 20px;
               text-align: center;
-              margin: 0;"> ${guestName}'s Check-in Form</h2>
+              margin: 0;"> ${guestName}'s Check-in Form <span style="font-size: 12px; color: #666;">(${reservationId})</span></h2>
               <p style="text-align: center; font-family: monospace">Actual Check-in Date / Time: ${actualCheckInTime}</p>
             </div>
             <div class="form-container">
@@ -1179,7 +1236,7 @@ async function handlePrint(reservationId, printType) {
               });
               
               const link = document.createElement('a');
-              link.download = 'checkin-form.png';
+              link.download = \`${guestName}'s Checkin-form (${reservationId}).png\`;
               link.href = canvas.toDataURL('image/png');
               link.click();
             }
@@ -1247,6 +1304,7 @@ async function handlePrint(reservationId, printType) {
             item.customFieldId === 75221 &&
             item.customField?.name === "Late Checkout Charges"
         );
+
         if (lateCheckoutField) {
           console.log("Late Checkout Charges:", lateCheckoutField.value);
           lateCheckOutCharges = lateCheckoutField.value;
@@ -1393,7 +1451,7 @@ async function handlePrint(reservationId, printType) {
       <h2 style="
               font-size: 20px;
               text-align: center;
-              margin: 0;"> ${guestName}'s Check-out Form</h2>
+              margin: 0;"> ${guestName}'s Check-out Form <span style="font-size: 12px; color: #666;">(${reservationId})</span></h2>
               <p style="text-align: center; font-family: monospace">Actual Check-out Date / Time: ${actualCheckOutTime}</p>
     </div>
 
@@ -1607,7 +1665,7 @@ async function handlePrint(reservationId, printType) {
     });
     
     const link = document.createElement('a');
-    link.download = 'checkin-form.png';
+    link.download = \`${guestName}'s Checkout-form ${reservationId}.png\`;
     link.href = canvas.toDataURL('image/png');
     link.click();
   }
@@ -1711,7 +1769,8 @@ async function fetchAndDisplayListings() {
 
     const data = await response.json();
     const listings = data.result || data || [];
-    const today = new Date().toISOString().split("T")[0];
+    const today = new Date();
+    const todayStr = today.toISOString().split("T")[0];
 
     const calendarPromises = listings.map(async (listing) => {
       const id = listing.id;
@@ -1735,7 +1794,7 @@ async function fetchAndDisplayListings() {
 
         const calData = await calResponse.json();
         const todayEntry = calData.result?.find(
-          (entry) => entry.date === today
+          (entry) => entry.date === todayStr
         );
         if (todayEntry) {
           return {
@@ -1785,7 +1844,7 @@ async function fetchAndDisplayListings() {
       availableStat &&
       occupancyStat
     ) {
-      dateStat.querySelector(".value").innerHTML = today;
+      dateStat.querySelector(".value").innerHTML = todayStr;
       dateStat.querySelector(".value").classList.add("date-value-occupancy");
 
       anime({
@@ -2158,21 +2217,20 @@ function findDoubleBookings(reservations, targetDate) {
           listingMapId,
           date,
           reservations: reservations.map((res) => ({
-            hostawayReservationId: res?.hostawayReservationId,
-            guestName: res?.guestName,
-            listingMapId: res?.listingMapId,
-            listingName:
-              listingsMap.get(res?.listingMapId) || res?.listingMapId,
-            arrivalDate: res?.arrivalDate,
-            departureDate: res?.departureDate,
+            hostawayReservationId: res.hostawayReservationId || "Unknown ID",
+            guestName: res.guestName || "Unknown Guest",
+            listingMapId: res.listingMapId || "N/A",
+            listingName: listingsMap.get(res.listingMapId) || res.listingMapId,
+            arrivalDate: res.arrivalDate,
+            departureDate: res.departureDate,
             nights:
-              res?.departureDate && res?.arrivalDate
+              res.departureDate && res.arrivalDate
                 ? Math.ceil(
                     (new Date(res.departureDate) - new Date(res.arrivalDate)) /
                       (1000 * 60 * 60 * 24)
                   )
                 : 0,
-            status: res?.status,
+            status: res.status,
           })),
         });
       }
@@ -2240,20 +2298,20 @@ async function fetchReservationsByDate(targetDateStr) {
         return arrival <= selectedDate && selectedDate < departure;
       })
       .map((res) => ({
-        hostawayReservationId: res?.hostawayReservationId,
-        guestName: res?.guestName,
-        listingMapId: res?.listingMapId,
-        listingName: listingsMap.get(res?.listingMapId) || res?.listingMapId,
-        arrivalDate: res?.arrivalDate,
-        departureDate: res?.departureDate,
+        hostawayReservationId: res.hostawayReservationId || "Unknown ID",
+        guestName: res.guestName || "Unknown Guest",
+        listingMapId: res.listingMapId || "N/A",
+        listingName: listingsMap.get(res.listingMapId) || res.listingMapId,
+        arrivalDate: res.arrivalDate,
+        departureDate: res.departureDate,
         nights:
-          res?.departureDate && res?.arrivalDate
+          res.departureDate && res.arrivalDate
             ? Math.ceil(
                 (new Date(res.departureDate) - new Date(res.arrivalDate)) /
                   (1000 * 60 * 60 * 24)
               )
             : 0,
-        status: res?.status,
+        status: res.status,
       }));
 
     // Update staying stats
@@ -2463,7 +2521,8 @@ function selectDate(date) {
     // Find double bookings for the selected date
     const doubleBookings = findDoubleBookings(reservations, selectedDateStr);
 
-    // Display the double bookings
+    // Display the do1483279690
+    // uble bookings
     // displayDoubleBookings(doubleBookings);
   });
 }
@@ -2597,21 +2656,20 @@ function findDoubleBookings(reservations, targetDate) {
           listingMapId,
           date,
           reservations: reservations.map((res) => ({
-            hostawayReservationId: res?.hostawayReservationId,
-            guestName: res?.guestName,
-            listingMapId: res?.listingMapId,
-            listingName:
-              listingsMap.get(res?.listingMapId) || res?.listingMapId,
-            arrivalDate: res?.arrivalDate,
-            departureDate: res?.departureDate,
+            hostawayReservationId: res.hostawayReservationId,
+            guestName: res.guestName,
+            listingMapId: res.listingMapId,
+            listingName: listingsMap.get(res.listingMapId) || res.listingMapId,
+            arrivalDate: res.arrivalDate,
+            departureDate: res.departureDate,
             nights:
-              res?.departureDate && res?.arrivalDate
+              res.departureDate && res.arrivalDate
                 ? Math.ceil(
                     (new Date(res.departureDate) - new Date(res.arrivalDate)) /
                       (1000 * 60 * 60 * 24)
                   )
                 : 0,
-            status: res?.status,
+            status: res.status,
           })),
         });
       }
