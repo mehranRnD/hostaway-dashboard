@@ -3,8 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>HostAway Dashboard</title>
+    <title>Namuve Dashboard</title>
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="responsive.css" />
     <link
       rel="icon"
       href="https://i.ibb.co/vC3k9ZXv/favicon-32x32.png"
@@ -19,7 +20,7 @@
         </div>
         <div class="header-center">
           <div class="text-container">
-            <h1>Hostaway Dashboard</h1>
+            <h1>Namuve Dashboard</h1>
           </div>
         </div>
         <div class="header-right">
@@ -258,6 +259,28 @@
         <div class="double-bookings-list" id="doubleBookingsList">
         </div>
       </div> -->
+      <div class="section">
+        <h2>Damaged Items Pricing</h2>
+        <div class="table-container">
+          <table class="styled-table">
+            <thead>
+              <tr>
+                <th>Sr No.</th>
+                <th>Item Name</th>
+                <th>Price</th>
+                <th width="30px"></th>
+                <!-- Spacer column -->
+                <th>Sr No.</th>
+                <th>Item Name</th>
+                <th>Price</th>
+              </tr>
+            </thead>
+            <tbody id="damageTableBody">
+              <!-- Rows will be added here by JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       <div class="loading" id="loading" style="display: none">
         <div>Loading reservations...</div>
@@ -288,5 +311,161 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <script src="script.js"></script>
+
+    <script>
+      const tbody = document.getElementById("damageTableBody");
+      const sampleData = [
+        {
+          name: "Three Seat Sofa (Burn&Damage)",
+          price: "10,000",
+          status: "pending",
+        },
+        {
+          name: "Two Seat Sofa (Burn&Damage)",
+          price: "8,000",
+          status: "pending",
+        },
+        { name: "Round Glass Table", price: "5,000", status: "pending" },
+        { name: "Chair (Burn&Damage)", price: "3,000", status: "pending" },
+        { name: "Side Table (Burn&Damage)", price: "3,000", status: "pending" },
+        {
+          name: "Dinning Table (Burn&Damage)",
+          price: "10,000",
+          status: "pending",
+        },
+        { name: "Chair Each (Burn&Damage)", price: "5,000", status: "pending" },
+        {
+          name: "Enterance Console (Burn&Damage)",
+          price: "3,000",
+          status: "pending",
+        },
+        { name: "Lamp(each) (Burn&Damage)", price: "8,000", status: "pending" },
+        {
+          name: "Medium Painting (Burn&Damage)",
+          price: "4,000",
+          status: "pending",
+        },
+        {
+          name: "Large Painting (Burn&Damage)",
+          price: "7,000",
+          status: "pending",
+        },
+        { name: "Ash Tray", price: "500", status: "pending" },
+        {
+          name: "Demy Book (Décor Item)(Burn&Damage)",
+          price: "1,000",
+          status: "pending",
+        },
+        { name: "Ceramic Vase", price: "3,000", status: "pending" },
+        { name: "Glass Vase", price: "2,000", status: "pending" },
+        {
+          name: "Window Curtain With Hanging Belt (Burn&Damage)",
+          price: "5,000",
+          status: "pending",
+        },
+        {
+          name: "Carpet Rug Large (5x7)(Burn&Damage)",
+          price: "25,000",
+          status: "pending",
+        },
+        {
+          name: "Carpet Rug Medium(4x6)(Burn&Damage)",
+          price: "15,000",
+          status: "pending",
+        },
+        { name: "Bedsheet(Burn&Damage)", price: "2,000", status: "pending" },
+        {
+          name: "Pillow Cover(Burn&Damage)",
+          price: "1,000",
+          status: "pending",
+        },
+        { name: "Duvet Cover(Burn&Damage)", price: "4,000", status: "pending" },
+        { name: "Cushion(Burn&Damage)", price: "1,500", status: "pending" },
+        { name: "Slippers Pair", price: "1,000", status: "pending" },
+        { name: "Toilet Basket", price: "1,000", status: "pending" },
+        { name: "Towel (Burn&Damage)", price: "1,500", status: "pending" },
+        { name: "Mattress(Burn&Damage)", price: "25,000", status: "pending" },
+        { name: "TCL 4K HDR LED 50INCHS", price: "110,000", status: "pending" },
+        {
+          name: "Haier Refrigerator (Damage)",
+          price: "25,000",
+          status: "pending",
+        },
+        { name: "Microwave Oven (Damage)", price: "7,000", status: "pending" },
+        {
+          name: "Anex Electrical Kettle 4042 (Damage)",
+          price: "3,000",
+          status: "pending",
+        },
+        {
+          name: "Anex Hotplate 6062 (Damage)",
+          price: "6,000",
+          status: "pending",
+        },
+        { name: "Glass each (Damage)", price: "200", status: "pending" },
+        { name: "Water Jug (Damage)", price: "600", status: "pending" },
+        { name: "Cup with saucers (Damage)", price: "400", status: "pending" },
+        { name: "Cooking pot (Damage)", price: "4,000", status: "pending" },
+        { name: "Cooking pan (Damage)", price: "4,000", status: "pending" },
+        { name: "Frying Pan (Damage)", price: "4,000", status: "pending" },
+        { name: "Rice Dish (Damage)", price: "1,000", status: "pending" },
+        { name: "Bowl (Damage)", price: "1,500", status: "pending" },
+        { name: "Soup Plates (Damage)", price: "500", status: "pending" },
+        { name: "Dinner Plates (Damage)", price: "700", status: "pending" },
+        { name: "Cooking Spoon (Damage)", price: "600", status: "pending" },
+        { name: "Table spoon (Damage) each", price: "300", status: "pending" },
+        { name: "Tea Spoon (Damage)", price: "200", status: "pending" },
+        { name: "Table Fork (Damage)", price: "300", status: "pending" },
+        { name: "Knife (Damage)", price: "500", status: "pending" },
+        { name: "Tea Strainer (Damage)", price: "500", status: "pending" },
+        {
+          name: "Max Liquid Dishwasher (Missing)",
+          price: "400",
+          status: "pending",
+        },
+        { name: "Max Scrub (Missing)", price: "150", status: "pending" },
+        { name: "Looking Mirror", price: "9,000", status: "pending" },
+      ];
+
+      // Split data into two columns
+      const half = Math.ceil(sampleData.length / 2);
+      const firstHalf = sampleData.slice(0, half);
+      const secondHalf = sampleData.slice(half);
+
+      // Add rows with two items each
+      const maxRows = Math.max(firstHalf.length, secondHalf.length);
+      for (let i = 0; i < maxRows; i++) {
+        const row = document.createElement("tr");
+
+        // First column item
+        if (i < firstHalf.length) {
+          const item1 = firstHalf[i];
+          row.innerHTML += `
+            <td>${i + 1}</td>
+            <td>${item1.name}</td>
+            <td><span class="status ${item1.status}">${item1.price}</span></td>
+          `;
+        } else {
+          row.innerHTML += "<td></td><td></td><td></td>";
+        }
+
+        // Spacer column
+        row.innerHTML += "<td></td>";
+
+        // Second column item
+        if (i < secondHalf.length) {
+          const item2 = secondHalf[i];
+          row.innerHTML += `
+            <td>${i + half + 1}</td>
+            <td>${item2.name}</td>
+            <td><span class="status ${item2.status}">${item2.price}</span></td>
+          `;
+        } else {
+          row.innerHTML += "<td></td><td></td><td></td>";
+        }
+
+        tbody.appendChild(row);
+      }
+    </script>
   </body>
 </html>

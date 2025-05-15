@@ -1,0 +1,221 @@
+/* Responsive Styles for Anime Dashboard */
+
+/* Base responsive styles */
+html {
+  font-size: 100%;
+}
+
+/* Small devices (landscape phones, 576px and up) */
+@media (max-width: 576px) {
+  html {
+    font-size: 14px;
+  }
+
+  .header {
+    flex-direction: column;
+    text-align: center;
+    padding: 1rem 0.5rem;
+  }
+
+  .header-center {
+    margin: 1rem 0;
+  }
+
+  .text-container h1 {
+    font-size: 1.8rem;
+  }
+
+  .main-body {
+    grid-template-columns: 1fr;
+    padding: 0 10px;
+  }
+
+  .expected-sections {
+    grid-template-columns: 1fr;
+  }
+
+  .section {
+    padding: 15px;
+  }
+
+  .stats-grid {
+    padding: 1rem 0.5rem;
+  }
+}
+
+/* Medium devices (tablets, 768px and up) */
+@media (min-width: 577px) and (max-width: 991px) {
+  html {
+    font-size: 15px;
+  }
+
+  .main-body {
+    grid-template-columns: 1fr;
+    padding: 0 15px;
+  }
+
+  .expected-sections {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .header {
+    padding: 1rem;
+  }
+
+  .stats-grid {
+    padding: 1.5rem;
+  }
+}
+
+/* Large devices (desktops, 992px and up) */
+@media (min-width: 992px) and (max-width: 1199px) {
+  .dashboard-container {
+    padding: 20px 15px;
+  }
+
+  .main-body {
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+  }
+
+  .expected-sections {
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+  }
+}
+
+/* Extra large devices (large desktops, 1200px and up) */
+@media (min-width: 1200px) {
+  .dashboard-container {
+    padding: 20px 30px;
+  }
+
+  .main-body {
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+  }
+
+  .expected-sections {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 25px;
+  }
+}
+
+/* Specific component adjustments */
+@media (max-width: 768px) {
+  .guest-card {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .reservation-card {
+    padding: 10px;
+  }
+
+  .calendar-button {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+  }
+}
+
+/* Adjust charts for mobile */
+@media (max-width: 576px) {
+  #occupancyChart {
+    height: 300px;
+  }
+
+  .chart-container {
+    padding: 10px;
+  }
+}
+
+/* Form elements responsiveness */
+@media (max-width: 768px) {
+  form {
+    padding: 15px;
+  }
+
+  .form-group {
+    margin-bottom: 15px;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  select {
+    width: 100%;
+    padding: 8px 12px;
+  }
+
+  button[type="submit"] {
+    width: 100%;
+    padding: 10px;
+  }
+}
+
+/* Navigation adjustments */
+@media (max-width: 992px) {
+  .main-nav {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .nav-links {
+    margin-top: 10px;
+  }
+
+  .nav-links a {
+    display: block;
+    padding: 8px 0;
+  }
+}
+
+/* Utility classes for responsive text */
+.text-responsive {
+  font-size: 1rem;
+}
+
+@media (max-width: 768px) {
+  .text-responsive {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .text-responsive {
+    font-size: 0.8rem;
+  }
+}
+
+/* Responsive tables */
+@media (max-width: 768px) {
+  .responsive-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    min-width: 600px;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: white;
+    color: black;
+    font-size: 12pt;
+  }
+
+  .dashboard-container {
+    width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+}
