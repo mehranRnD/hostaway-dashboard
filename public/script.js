@@ -239,13 +239,10 @@ function displayStayingGuests(guests) {
 
 // Function to categorize reservations
 function categorizeReservations(reservations) {
-  const today = new Date();
-  const todayStr = today.toISOString().split("T")[0];
-
   const categorized = {
     expectedCheckIns: [],
-    expectedCheckOuts: [],
     actualCheckIns: [],
+    expectedCheckOuts: [],
     actualCheckOuts: [],
   };
 
@@ -255,18 +252,14 @@ function categorizeReservations(reservations) {
   const checkOutsFromStorage = JSON.parse(
     localStorage.getItem("actualCheckOuts") || "{}"
   );
+  const todayStr = new Date().toISOString().split("T")[0];
 
   reservations.forEach((reservation) => {
-    if (!reservation) return;
-
     const resId = reservation.hostawayReservationId;
-    const arrivalDate = new Date(reservation.arrivalDate)
-      .toISOString()
-      .split("T")[0];
-    const departureDate = new Date(reservation.departureDate)
-      .toISOString()
-      .split("T")[0];
+    const arrivalDate = reservation.arrivalDate?.split("T")[0];
+    const departureDate = reservation.departureDate?.split("T")[0];
 
+    
     // If checked out, always show in actual checkouts
     if (checkOutsFromStorage[resId]) {
       categorized.actualCheckOuts.push(reservation);
@@ -281,17 +274,20 @@ function categorizeReservations(reservations) {
             field.value === "Yes"
         ) || false;
 
+      // Always show in Actual Check-In
       categorized.actualCheckIns.push(reservation);
+      categorized.expectedCheckOuts.push(reservation);
 
-      // ✅ Show in Expected Check-Out if field is Yes — ignore departureDate
+      // Show in Expected Check-Out if field is Yes — ignore departureDate
       if (hasSameDayCheckout) {
         categorized.expectedCheckOuts.push(reservation);
+        // Also show in Actual Check-Out for same-day reservations
+        categorized.actualCheckOuts.push(reservation);
       } else if (departureDate === todayStr) {
         categorized.expectedCheckOuts.push(reservation);
       }
     }
-
-    // Not checked in yet
+    // For other cases
     else {
       if (arrivalDate === todayStr) {
         categorized.expectedCheckIns.push(reservation);
@@ -304,6 +300,7 @@ function categorizeReservations(reservations) {
 
   return categorized;
 }
+
 // Function to display reservations in their respective sections
 function displayReservations(reservations) {
   const categorized = categorizeReservations(reservations);
@@ -426,11 +423,12 @@ function createReservationCard(reservation, sectionType) {
     (departureDate - arrivalDate) / (1000 * 60 * 60 * 24)
   );
 
+
   card.innerHTML = `
     <div class="reservation-header">
       <h3>${reservation.guestName || "Unknown Guest"}</h3>
       <span class="reservation-id">Reservation ID: ${
-        reservation.hostawayReservationId || "N/A"
+        reservation.hostawayReservationId || "Unknown ID"
       }</span>
     </div>
     <div class="reservation-details">
@@ -475,9 +473,12 @@ function createReservationCard(reservation, sectionType) {
           reservation.hostawayReservationId
         }" data-type="${
               sectionType === "actualCheckIns" ? "checkin" : "checkout"
-            }">Print ${
+            }">
+          Print ${
               sectionType === "actualCheckIns" ? "Check-in" : "Check-out"
-            }</button>
+            }
+           
+        </button>
       `
           : ""
       }
@@ -526,17 +527,6 @@ function handleCheckIn(reservation) {
   let guestName = reservation.guestName;
   let apartmentName =
     listingsMap.get(reservation.listingMapId) || reservation.listingMapId;
-
-  // Send Slack notification
-  const slackMessage = {
-    text: `📥 *Actual Check-In Alert!*\n\n👤 *${guestName}* has checked in to 🏠 *${apartmentName}* at 🕒 *${formattedDateTime}*.\n\n✅ Welcome to the Namuve!\n                               __________________________________________________________      \n`,
-  };
-
-  fetch(`${SERVER_URL}/send-to-slack`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(slackMessage),
-  }).catch((err) => console.error("Slack error", err));
 
   // Save to localStorage
   const existingCheckIns = JSON.parse(
@@ -682,17 +672,6 @@ function handleCheckOut(reservation) {
   )
     return;
 
-  // Slack notification
-  const slackMessage = {
-    text: `📤 *Check-Out Alert!*\n\n👤 *${guestName}* has checked out from 🏠 *${apartmentName}* at 🕒 *${formattedDateTime}*.\n\n✅ Please ensure all final checks are completed.\n                               __________________________________________________________      \n`,
-  };
-
-  fetch(`${SERVER_URL}/send-to-slack`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(slackMessage),
-  }).catch((err) => console.error("Slack error", err));
-
   // Local storage and Hostaway update
   const existingCheckOuts = JSON.parse(
     localStorage.getItem("actualCheckOuts") || "{}"
@@ -714,13 +693,13 @@ function handleCheckOut(reservation) {
     .then(() => updateUI())
     .catch((err) => console.error("Hostaway error", err));
 
-  // Move to actual check-outs
-  const card = document.querySelector(
-    `.reservation-card[data-res-id="${reservationId}"]`
-  );
-  if (card) {
-    // Update the button before moving the card
-    const checkOutBtn = card.querySelector(".check-out-btn");
+  // Clone the card for Actual Check-Out section
+  if (reservationCard) {
+    // Clone the card
+    const clonedCard = reservationCard.cloneNode(true);
+
+    // Update the button in the cloned card
+    const checkOutBtn = clonedCard.querySelector(".check-out-btn");
     if (checkOutBtn) {
       // Create a new button to replace the old one
       const printBtn = document.createElement("button");
@@ -733,10 +712,10 @@ function handleCheckOut(reservation) {
       checkOutBtn.parentNode.replaceChild(printBtn, checkOutBtn);
     }
 
-    // Move the card to actual check-outs section
+    // Move the cloned card to actual check-outs section
     const actualCheckOutsList = document.querySelector("#actualCheckOutsList");
     if (actualCheckOutsList) {
-      actualCheckOutsList.appendChild(card);
+      actualCheckOutsList.appendChild(clonedCard);
     }
     updateUI();
   }
@@ -836,7 +815,6 @@ async function handlePrint(reservationId, printType) {
       }
 
       const data = await response.json();
-      console.log("Reservation Data:", data);
       const customFields = data.result?.customFieldValues;
       console.log("Custom Fields:", customFields);
 
