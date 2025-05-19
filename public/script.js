@@ -259,7 +259,6 @@ function categorizeReservations(reservations) {
     const arrivalDate = reservation.arrivalDate?.split("T")[0];
     const departureDate = reservation.departureDate?.split("T")[0];
 
-    
     // If checked out, always show in actual checkouts
     if (checkOutsFromStorage[resId]) {
       categorized.actualCheckOuts.push(reservation);
@@ -274,17 +273,15 @@ function categorizeReservations(reservations) {
             field.value === "Yes"
         ) || false;
 
-      // Always show in Actual Check-In
-      categorized.actualCheckIns.push(reservation);
-      categorized.expectedCheckOuts.push(reservation);
-
-      // Show in Expected Check-Out if field is Yes — ignore departureDate
+      // Only show in both sections if Same day Check-out is Yes
       if (hasSameDayCheckout) {
+        categorized.actualCheckIns.push(reservation);
         categorized.expectedCheckOuts.push(reservation);
-        // Also show in Actual Check-Out for same-day reservations
         categorized.actualCheckOuts.push(reservation);
-      } else if (departureDate === todayStr) {
-        categorized.expectedCheckOuts.push(reservation);
+      }
+      // Otherwise, show only in Actual Check-In
+      else {
+        categorized.actualCheckIns.push(reservation);
       }
     }
     // For other cases
@@ -423,7 +420,6 @@ function createReservationCard(reservation, sectionType) {
     (departureDate - arrivalDate) / (1000 * 60 * 60 * 24)
   );
 
-
   card.innerHTML = `
     <div class="reservation-header">
       <h3>${reservation.guestName || "Unknown Guest"}</h3>
@@ -474,9 +470,7 @@ function createReservationCard(reservation, sectionType) {
         }" data-type="${
               sectionType === "actualCheckIns" ? "checkin" : "checkout"
             }">
-          Print ${
-              sectionType === "actualCheckIns" ? "Check-in" : "Check-out"
-            }
+          Print ${sectionType === "actualCheckIns" ? "Check-in" : "Check-out"}
            
         </button>
       `
