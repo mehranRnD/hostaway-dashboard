@@ -70,6 +70,42 @@ loading.style.display = "block";
 const today = new Date().toISOString().split("T")[0];
 
 // Fetch reservations
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchDetailedReservations(reservations) {
+  const detailedReservations = [];
+
+  for (let i = 0; i < reservations.length; i++) {
+    const res = reservations[i];
+    try {
+      const resId = res.hostawayReservationId;
+      const response = await fetch(`${API_URL}/${resId}`, {
+        headers: {
+          Authorization: `Bearer ${API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) throw new Error();
+
+      const data = await response.json();
+      detailedReservations.push({
+        ...res,
+        customFieldValues: data.result.customFieldValues || [],
+      });
+    } catch (err) {
+      console.warn(`Failed to fetch details for ${res.hostawayReservationId}`);
+      detailedReservations.push(res); // Use original fallback
+    }
+
+    await delay(200); // ⏳ Wait 200ms before next request
+  }
+
+  return detailedReservations;
+}
+
 async function fetchReservations() {
   try {
     const response = await fetch(API_URL, {
@@ -89,81 +125,34 @@ async function fetchReservations() {
     }
 
     const data = await response.json();
-    // console.log("API Response:", JSON.stringify(data, null, 2));
-
-    // Handle API response structure
     let reservations = [];
 
-    if (data && typeof data === "object") {
-      if (data.status && data.result && Array.isArray(data.result)) {
-        reservations = data.result;
-      } else {
-        throw new Error(
-          `Invalid API response format. Expected structure not found.`
-        );
-      }
+    if (data?.status && Array.isArray(data.result)) {
+      reservations = data.result;
     } else {
-      throw new Error(
-        `Invalid API response format. Response type: ${typeof data}`
-      );
+      throw new Error("Invalid API response format.");
     }
 
-    // Process reservations to find staying guests
-    const stayingGuests = reservations
-      .filter((reservation) => {
+    // 👇 Throttled fetch of detailed reservations
+    const detailedReservations = await fetchDetailedReservations(reservations);
+
+    // Display all dashboard data
+    displayReservations(detailedReservations);
+    displayStayingGuests(
+      detailedReservations.filter((reservation) => {
         const arrivalDate = new Date(reservation.arrivalDate);
         const departureDate = new Date(reservation.departureDate);
         return arrivalDate <= new Date() && new Date() < departureDate;
       })
-      .map((reservation) => ({
-        hostawayReservationId:
-          reservation.hostawayReservationId || "Unknown ID",
-        guestName: reservation.guestName || "Unknown Guest",
-        listingMapId: reservation.listingMapId || "N/A",
-        listingName:
-          listingsMap.get(reservation.listingMapId) || reservation.listingMapId,
-        arrivalDate: reservation.arrivalDate,
-        departureDate: reservation.departureDate,
-        nights: Math.ceil(
-          (new Date(reservation.departureDate) -
-            new Date(reservation.arrivalDate)) /
-            (1000 * 60 * 60 * 24)
-        ),
-      }));
+    );
 
-    // Find double bookings
-    const doubleBookings = findDoubleBookings(reservations, today);
-    // displayDoubleBookings(doubleBookings);
-
-    // Calculate statistics
-    const stats = {
-      totalStaying: stayingGuests.length,
-      avgStay:
-        stayingGuests.reduce((sum, guest) => {
-          const checkIn = new Date(guest.arrivalDate);
-          const checkOut = new Date(guest.departureDate);
-          return sum + Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
-        }, 0) / stayingGuests.length || 0,
-    };
-
-    // Update statistics
-    document.getElementById("totalStaying").textContent = stats.totalStaying;
-    // document.getElementById("avgStay").textContent = Math.round(stats.avgStay);
-
-    // Display staying guests
-    displayStayingGuests(stayingGuests);
-
-    // Also display today's reservations
-
-    displayReservations(reservations);
-
-    const todayArrivals = reservations.filter((res) => {
+    const todayStr = new Date().toISOString().split("T")[0];
+    const todayArrivals = detailedReservations.filter((res) => {
       const arrivalDateStr = new Date(res.arrivalDate)
         .toISOString()
         .split("T")[0];
-      return arrivalDateStr === today;
+      return arrivalDateStr === todayStr;
     });
-    // console.log(todayArrivals);
 
     document.querySelector("#totalReservations .value").textContent =
       todayArrivals.length;
@@ -176,7 +165,6 @@ async function fetchReservations() {
       easing: "easeOutExpo",
     });
 
-    // Hide loading and show content
     loading.style.display = "none";
   } catch (error) {
     console.error("Error fetching reservations:", error);
@@ -255,6 +243,8 @@ function categorizeReservations(reservations) {
   const todayStr = new Date().toISOString().split("T")[0];
 
   reservations.forEach((reservation) => {
+    if (!reservation) return;
+
     const resId = reservation.hostawayReservationId;
     const arrivalDate = reservation.arrivalDate?.split("T")[0];
     const departureDate = reservation.departureDate?.split("T")[0];
@@ -273,22 +263,24 @@ function categorizeReservations(reservations) {
             field.value === "Yes"
         ) || false;
 
-      // Only show in both sections if Same day Check-out is Yes
+      // If it's a same-day check-out
       if (hasSameDayCheckout) {
+        // Show in both Actual Check-In and Expected Check-Out
         categorized.actualCheckIns.push(reservation);
         categorized.expectedCheckOuts.push(reservation);
-        categorized.actualCheckOuts.push(reservation);
       }
-      // Otherwise, show only in Actual Check-In
+      // Regular check-in without same-day checkout
       else {
         categorized.actualCheckIns.push(reservation);
       }
     }
-    // For other cases
+    // For other cases (expected check-ins/outs)
     else {
+      // If arrival date matches today
       if (arrivalDate === todayStr) {
         categorized.expectedCheckIns.push(reservation);
       }
+      // If departure date matches today
       if (departureDate === todayStr) {
         categorized.expectedCheckOuts.push(reservation);
       }
@@ -401,6 +393,27 @@ function displayReservationsWithAnimations(reservations) {
 
 // Create a reservation card
 function createReservationCard(reservation, sectionType) {
+  const reservationId = reservation.hostawayReservationId;
+
+  // Check if we have stored same-day check-out status
+  const storedStatus = JSON.parse(
+    localStorage.getItem(`sameDayCheckOut_${reservationId}`) || "{}"
+  );
+  const isDisabled = storedStatus.disabled || false;
+
+  // Create the button with appropriate state
+  const sameDayBtn = `
+    <button class="same-day-checkout-btn" 
+            data-res-id="${reservationId}"
+            ${
+              isDisabled
+                ? 'disabled style="opacity: 0.5;" title="Same day check-out not allowed for this reservation"'
+                : ""
+            }>
+      Same Day Check-Out
+    </button>
+  `;
+
   const card = document.createElement("div");
   card.className =
     "reservation-card" + (reservation.isOverdue ? " overdue" : "");
@@ -469,10 +482,16 @@ function createReservationCard(reservation, sectionType) {
           reservation.hostawayReservationId
         }" data-type="${
               sectionType === "actualCheckIns" ? "checkin" : "checkout"
-            }">
+            }"> 
           Print ${sectionType === "actualCheckIns" ? "Check-in" : "Check-out"}
-           
         </button>
+        ${
+          sectionType === "actualCheckIns"
+            ? `
+        ${sameDayBtn}
+        `
+            : ""
+        }
       `
           : ""
       }
@@ -484,6 +503,7 @@ function createReservationCard(reservation, sectionType) {
     const checkInBtn = card.querySelector(".check-in-btn");
     const checkOutBtn = card.querySelector(".check-out-btn");
     const printBtn = card.querySelector(".print-btn");
+    const sameDayCheckoutBtn = card.querySelector(".same-day-checkout-btn");
 
     if (checkInBtn) {
       checkInBtn.addEventListener("click", () => handleCheckIn(reservation));
@@ -496,6 +516,11 @@ function createReservationCard(reservation, sectionType) {
         const printType = printBtn.getAttribute("data-type");
         handlePrint(reservation.hostawayReservationId, printType);
       });
+    }
+    if (sameDayCheckoutBtn) {
+      sameDayCheckoutBtn.addEventListener("click", () =>
+        handleSameDayCheckOut(reservation)
+      );
     }
   }, 0);
 
@@ -570,25 +595,41 @@ function handleCheckIn(reservation) {
   }
 
   if (reservationCard) {
-    // Update the button before moving the card
+    // Update the Check-In button to a Print button
     const checkInBtn = reservationCard.querySelector(".check-in-btn");
     if (checkInBtn) {
       checkInBtn.textContent = "Print Check-in";
       checkInBtn.classList.remove("check-in-btn");
       checkInBtn.classList.add("print-btn");
       checkInBtn.setAttribute("data-type", "checkin");
+      checkInBtn.setAttribute("data-res-id", reservation.hostawayReservationId);
     }
 
-    // Move the card to actual check-ins section
+    // Create Same Day Check-Out button
+    const sameDayCheckOutBtn = document.createElement("button");
+    sameDayCheckOutBtn.className = "same-day-checkout-btn";
+    sameDayCheckOutBtn.textContent = "Same Day Check-Out";
+
+    // Add to actions container
+    const actionsDiv = reservationCard.querySelector(".reservation-actions");
+    if (actionsDiv) {
+      // Avoid duplicating button on re-check-ins
+      if (!actionsDiv.querySelector(".same-day-checkout-btn")) {
+        actionsDiv.appendChild(sameDayCheckOutBtn);
+      }
+    }
+
+    // Move card to Actual Check-In section
     actualCheckInsList.appendChild(reservationCard);
 
-    // Update section type
+    // Optional: update label if you use it somewhere
     const sectionTypeElement = reservationCard.querySelector(".section-type");
     if (sectionTypeElement) {
       sectionTypeElement.textContent = "Actual Check-in";
     }
 
     updateUI();
+    fetchReservations();
   }
 }
 
@@ -692,6 +733,12 @@ function handleCheckOut(reservation) {
     // Clone the card
     const clonedCard = reservationCard.cloneNode(true);
 
+    // Remove Same Day Check-Out button if it exists
+    const sameDayBtn = clonedCard.querySelector(".same-day-checkout-btn");
+    if (sameDayBtn) {
+      sameDayBtn.remove();
+    }
+
     // Update the button in the cloned card
     const checkOutBtn = clonedCard.querySelector(".check-out-btn");
     if (checkOutBtn) {
@@ -759,7 +806,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     },
     true
-  ); // Use capture phase to handle the event first
+  );
 });
 
 // Function to handle print
@@ -815,7 +862,9 @@ async function handlePrint(reservationId, printType) {
       if (customFields && Array.isArray(customFields)) {
         // Get Actual Check-in Time
         const checkInField = customFields.find(
-          (item) => item.customField?.name === "Actual Check-in Time"
+          (item) =>
+            item.customField?.name === "Actual Check-in Time" &&
+            item.customFieldId === 76281
         );
         if (checkInField) {
           actualCheckInTime = checkInField.value;
@@ -855,6 +904,7 @@ async function handlePrint(reservationId, printType) {
             item.customFieldId === 62072 &&
             item.customField?.name === "Vehicle Number"
         );
+
         if (vehicleNumberField) {
           vehicleNumber = vehicleNumberField.value;
           console.log("Vehicle Number:", vehicleNumber);
@@ -868,6 +918,7 @@ async function handlePrint(reservationId, printType) {
             item.customFieldId === 75222 &&
             item.customField?.name === "Early Checkin Charges"
         );
+
         if (earlyCheckInField) {
           earlyCheckIn = earlyCheckInField.value;
           console.log("Early Check-in:", earlyCheckIn);
@@ -880,23 +931,21 @@ async function handlePrint(reservationId, printType) {
             item.customFieldId === 75219 &&
             item.customField?.name === "Damage Charges"
         );
-        let damageCharges = null;
+
         if (damageChargesField) {
-          damageCharges = damageChargesField.value;
-          console.log("Damage Charges:", damageCharges);
+          console.log("Damage Charges:", damageChargesField.value);
         } else {
           console.log("Damage Charges not found.");
         }
         // Get Same Day Check-out
         const sameDayCheckoutField = customFields.find(
           (item) =>
-            item.customFieldId === 77304 && // Make sure this matches your actual ID
+            item.customFieldId === 77304 &&
             item.customField?.name === "Same day Check-out"
         );
 
         if (sameDayCheckoutField) {
-          const sameDayCheckoutValue = sameDayCheckoutField.value; // extract the value
-          console.log("Same Day Check-out:", sameDayCheckoutValue); // will log "Yes" or "No"
+          console.log("Same Day Check-out:", sameDayCheckoutField.value);
         } else {
           console.log("Same Day Check-out not found.");
         }
@@ -1170,7 +1219,7 @@ async function handlePrint(reservationId, printType) {
                 </div>
                 <div style="text-align: center; margin-top: -40px;">
   <h5 style="margin: 0; font-size: 17px;">CHECK OUT TIME 12:00 NOON</h5>
-  <p style="margin: 4px 0 0; font-size: 11px;">(Late Check Out charges applicable @ Rs. 1000 per hour)</p>
+  <p style="margin: 4px 0 0; font-size: 11px;">(Late Check Out charges applicable @ Rs. 1000 per hour) <br> (*Subject to Availability)</p>
 </div>
 
 
@@ -1248,7 +1297,9 @@ async function handlePrint(reservationId, printType) {
       if (customFields && Array.isArray(customFields)) {
         // Get Actual Check-out Time
         const checkOutField = customFields.find(
-          (item) => item.customField?.name === "Actual Check-out Time"
+          (item) =>
+            item.customField?.name === "Actual Check-out Time" &&
+            item.customFieldId === 76282
         );
         if (checkOutField) {
           actualCheckOutTime = checkOutField.value;
@@ -1263,13 +1314,13 @@ async function handlePrint(reservationId, printType) {
             item.customFieldId === 75219 &&
             item.customField?.name === "Damage Charges"
         );
+
         if (damageChargesField) {
           damageCharges = damageChargesField.value;
           console.log("Damage Charges:", damageCharges);
         } else {
           console.log("Damage Charges not found.");
         }
-
         // Get Late Checkout Charges
         const lateCheckoutField = customFields.find(
           (item) =>
@@ -2023,6 +2074,102 @@ document.addEventListener("dateSelected", (e) => {
   fetchReservationsByDate(selectedDate);
 });
 
+async function fetchReservationsByDate(targetDateStr) {
+  try {
+    const response = await fetch(API_URL, {
+      headers: {
+        Authorization: `Bearer ${API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) throw new Error("Failed to fetch reservations");
+
+    const data = await response.json();
+    const reservations = Array.isArray(data.result) ? data.result : [];
+
+    // 🎯 Only keep reservations with status 'new' or 'modified'
+    const validStatuses = ["new", "modified"];
+    const filteredByStatus = reservations.filter((res) =>
+      validStatuses.includes(res.status)
+    );
+
+    // Filter by arrival or departure matching selected date
+    const filteredReservations = filteredByStatus.filter((res) => {
+      const arrival = new Date(res.arrivalDate).toISOString().split("T")[0];
+      const departure = new Date(res.departureDate).toISOString().split("T")[0];
+      return arrival === targetDateStr || departure === targetDateStr;
+    });
+
+    // Categorize and display reservations
+    displayReservations(filteredReservations);
+
+    // Staying Guests for selected date
+    const selectedDate = new Date(targetDateStr);
+    const stayingGuests = filteredByStatus
+      .filter((res) => {
+        const arrivalDate = new Date(res.arrivalDate);
+        const departureDate = new Date(res.departureDate);
+        return arrivalDate <= selectedDate && selectedDate < departureDate;
+      })
+      .map((res) => ({
+        hostawayReservationId: res.hostawayReservationId || "Unknown ID",
+        guestName: res.guestName || "Unknown Guest",
+        listingMapId: res.listingMapId || "N/A",
+        listingName: listingsMap.get(res.listingMapId) || res.listingMapId,
+        arrivalDate: res.arrivalDate,
+        departureDate: res.departureDate,
+        nights:
+          res.departureDate && res.arrivalDate
+            ? Math.ceil(
+                (new Date(res.departureDate) - new Date(res.arrivalDate)) /
+                  (1000 * 60 * 60 * 24)
+              )
+            : 0,
+        status: res.status,
+      }));
+
+    // Update staying stats
+    document.getElementById("totalStaying").textContent = stayingGuests.length;
+    // document.getElementById("avgStay").textContent = Math.round(
+    //   stayingGuests.reduce((sum, guest) => {
+    //     const checkIn = new Date(guest.arrivalDate);
+    //     const checkOut = new Date(guest.departureDate);
+    //     return sum + Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+    //   }, 0) / stayingGuests.length || 0
+    // );
+
+    displayStayingGuests(stayingGuests);
+
+    // Update total reservation count
+    const stats = {
+      total: filteredReservations.length,
+    };
+    animateStats(stats);
+  } catch (err) {
+    console.error("Error fetching reservations by date:", err);
+  }
+}
+
+// 🟢 At load, show today's data
+document.addEventListener("DOMContentLoaded", () => {
+  const todayStr = new Date().toISOString().split("T")[0];
+  fetchReservationsByDate(todayStr);
+});
+
+// 📅 Handle calendar date selection
+document.addEventListener("dateSelected", (e) => {
+  const selectedDate = e.detail.date.toISOString().split("T")[0];
+  fetchReservationsByDate(selectedDate);
+});
+
+document.addEventListener("click", function (e) {
+  if (e.target && e.target.classList.contains("same-day-checkout-btn")) {
+    const resId = e.target.dataset.resId;
+    console.log(`Reservation ID: ${resId}`);
+  }
+});
+
 // Function to get finance fields
 async function getFinanceFields(reservationId) {
   try {
@@ -2138,6 +2285,9 @@ async function getFinanceFields(reservationId) {
   }
 }
 
+// Initialize
+fetchReservations();
+
 // Function to find double bookings
 function findDoubleBookings(reservations, targetDate) {
   // Return empty array if no reservations or invalid data
@@ -2194,9 +2344,9 @@ function findDoubleBookings(reservations, targetDate) {
           listingMapId,
           date,
           reservations: reservations.map((res) => ({
-            hostawayReservationId: res.hostawayReservationId || "Unknown ID",
-            guestName: res.guestName || "Unknown Guest",
-            listingMapId: res.listingMapId || "N/A",
+            hostawayReservationId: res.hostawayReservationId,
+            guestName: res.guestName,
+            listingMapId: res.listingMapId,
             listingName: listingsMap.get(res.listingMapId) || res.listingMapId,
             arrivalDate: res.arrivalDate,
             departureDate: res.departureDate,
@@ -2229,153 +2379,152 @@ document.addEventListener("dateSelected", (e) => {
   fetchReservationsByDate(selectedDate);
 });
 
-// Initialize after DOM is loaded
-document.addEventListener("DOMContentLoaded", () => {
-  const todayStr = new Date().toISOString().split("T")[0];
-  fetchReservationsByDate(todayStr);
-});
+function handleSameDayCheckOut(reservation) {
+  const reservationId = reservation.hostawayReservationId;
 
-// Function to fetch and display reservations for a given date (YYYY-MM-DD)
-async function fetchReservationsByDate(targetDateStr) {
-  try {
-    const response = await fetch(API_URL, {
-      headers: {
-        Authorization: `Bearer ${API_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-    });
+  // Fetch reservation details first
+  const apiUrl = `https://api.hostaway.com/v1/reservations/${reservationId}`;
+  fetch(apiUrl, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${API_TOKEN}`,
+    },
+  })
+    .then((response) => response.json())
+    .then((reservationData) => {
+      const customFields = reservationData.result.customFieldValues;
 
-    if (!response.ok) throw new Error("Failed to fetch reservations");
+      // Find the specific custom field with ID 77304 (Same day Check-out)
+      const sameDayCheckOutField = customFields.find(
+        (field) => field.customFieldId === 77304
+      );
 
-    const data = await response.json();
-    const reservations = Array.isArray(data.result) ? data.result : [];
+      if (sameDayCheckOutField) {
+        console.log("Value:", sameDayCheckOutField.value);
 
-    // 🎯 Only keep reservations with status 'new' or 'modified'
-    const validStatuses = ["new", "modified"];
-    const filteredByStatus = reservations.filter((res) =>
-      validStatuses.includes(res.status)
-    );
+        // Store the same-day check-out status in localStorage
+        const sameDayStatus =
+          sameDayCheckOutField.value === "No" ||
+          sameDayCheckOutField.value === "";
+        localStorage.setItem(
+          `sameDayCheckOut_${reservationId}`,
+          JSON.stringify({
+            disabled: sameDayStatus,
+            value: sameDayCheckOutField.value,
+          })
+        );
 
-    // Filter by arrival or departure matching selected date
-    const filteredReservations = filteredByStatus.filter((res) => {
-      const arrival = new Date(res.arrivalDate).toISOString().split("T")[0];
-      const departure = new Date(res.departureDate).toISOString().split("T")[0];
-      return arrival === targetDateStr || departure === targetDateStr;
-    });
+        // Disable button if value is "No" or empty
+        const sameDayBtn = document.querySelector(
+          `.same-day-checkout-btn[data-res-id="${reservationId}"]`
+        );
+        if (sameDayBtn) {
+          if (sameDayStatus) {
+            sameDayBtn.disabled = true;
+            sameDayBtn.style.opacity = "0.5";
+            sameDayBtn.title =
+              "Same day check-out not allowed for this reservation";
+            // Don't proceed with checkout if value is "No" or empty
+            return;
+          } else {
+            sameDayBtn.disabled = false;
+            sameDayBtn.style.opacity = "1";
+            sameDayBtn.title = "";
+          }
+        }
+      } else {
+        console.log("Same Day Check-Out Field not found.");
+        // Store unknown status
+        localStorage.setItem(
+          `sameDayCheckOut_${reservationId}`,
+          JSON.stringify({
+            disabled: true,
+            value: "unknown",
+          })
+        );
+        // Don't proceed if field not found
+        return;
+      }
 
-    // Categorize and display reservations
-    displayReservations(filteredReservations);
+      // Proceed with checkout only if value is not "No" or empty
+      const now = new Date();
+      const formattedDateTime = now.toLocaleString("en-US", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
 
-    // Staying Guests for selected date
-    const selectedDate = new Date(targetDateStr);
-    const stayingGuests = filteredByStatus
-      .filter((res) => {
-        const arrival = new Date(res.arrivalDate);
-        const departure = new Date(res.departureDate);
-        return arrival <= selectedDate && selectedDate < departure;
+      // Save to local storage
+      const existingCheckOuts = JSON.parse(
+        localStorage.getItem("actualCheckOuts") || "{}"
+      );
+      existingCheckOuts[reservationId] = formattedDateTime;
+      localStorage.setItem(
+        "actualCheckOuts",
+        JSON.stringify(existingCheckOuts)
+      );
+
+      // Update Hostaway
+      const updateUrl = `https://api.hostaway.com/v1/reservations/${reservationId}?forceOverbooking=1`;
+      fetch(updateUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${API_TOKEN}`,
+        },
+        body: JSON.stringify({
+          status: "stayed",
+          customFieldValues: [
+            { customFieldId: 76282, value: formattedDateTime }, // Actual Check-out
+          ],
+        }),
       })
-      .map((res) => ({
-        hostawayReservationId: res.hostawayReservationId || "Unknown ID",
-        guestName: res.guestName || "Unknown Guest",
-        listingMapId: res.listingMapId || "N/A",
-        listingName: listingsMap.get(res.listingMapId) || res.listingMapId,
-        arrivalDate: res.arrivalDate,
-        departureDate: res.departureDate,
-        nights:
-          res.departureDate && res.arrivalDate
-            ? Math.ceil(
-                (new Date(res.departureDate) - new Date(res.arrivalDate)) /
-                  (1000 * 60 * 60 * 24)
-              )
-            : 0,
-        status: res.status,
-      }));
+        .then(() => {
+          // Move to Actual Check-Out section
+          const reservationCard = document.querySelector(
+            `.reservation-card[data-res-id="${reservationId}"]`
+          );
 
-    // Update staying stats
-    document.getElementById("totalStaying").textContent = stayingGuests.length;
-    // document.getElementById("avgStay").textContent = Math.round(
-    //   stayingGuests.reduce((sum, guest) => {
-    //     const checkIn = new Date(guest.arrivalDate);
-    //     const checkOut = new Date(guest.departureDate);
-    //     return sum + Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
-    //   }, 0) / stayingGuests.length || 0
-    // );
+          if (reservationCard) {
+            // Remove Same Day Check-Out button
+            const sameDayBtn = reservationCard.querySelector(
+              ".same-day-checkout-btn"
+            );
+            if (sameDayBtn) {
+              sameDayBtn.remove();
+            }
 
-    displayStayingGuests(stayingGuests);
+            // Replace Check-out button with Print Check-out button
+            const checkOutBtn = reservationCard.querySelector(".check-out-btn");
+            if (checkOutBtn) {
+              const printBtn = document.createElement("button");
+              printBtn.className = "print-btn";
+              printBtn.textContent = "Print Check-out";
+              printBtn.setAttribute("data-res-id", reservationId);
+              printBtn.setAttribute("data-type", "checkout");
+              checkOutBtn.parentNode.replaceChild(printBtn, checkOutBtn);
+            }
 
-    // Update total reservation count
-    const stats = {
-      total: filteredReservations.length,
-    };
-    animateStats(stats);
-  } catch (err) {
-    console.error("Error fetching reservations by date:", err);
-  }
+            // Move to Actual Check-Out section
+            const actualCheckOutsList = document.querySelector(
+              "#actualCheckOutsList"
+            );
+            if (actualCheckOutsList) {
+              actualCheckOutsList.appendChild(reservationCard);
+              updateUI();
+            }
+          }
+        })
+        .catch((err) =>
+          console.error("Error updating reservation status", err)
+        );
+    })
+    .catch((err) => console.error("Error fetching reservation details", err));
 }
-
-// Function to display double bookings
-// function displayDoubleBookings(doubleBookings) {
-//   const container = document.getElementById("doubleBookingsList");
-//   container.innerHTML = "";
-
-//   if (doubleBookings.length === 0) {
-//     const noDoubleBookings = document.createElement("div");
-//     noDoubleBookings.className = "no-double-bookings";
-//     noDoubleBookings.textContent = "No double bookings found.";
-//     container.appendChild(noDoubleBookings);
-//     return;
-//   }
-
-//   doubleBookings.forEach((doubleBooking) => {
-//     const card = document.createElement("div");
-//     card.className = "double-booking-card";
-
-//     const listingName =
-//       listingsMap.get(doubleBooking.listingMapId) || doubleBooking.listingMapId;
-
-//     card.innerHTML = `
-//       <div class="guest-header">
-//         <div class="guest-col hostaway-id">Hostaway ID</div>
-//         <div class="guest-col name">Guest Name</div>
-//         <div class="guest-col listing-name">Listing Name</div>
-//         <div class="guest-col nights">Nights</div>
-//         <div class="guest-col status">Status</div>
-//         <div class="guest-col duration">Staying Duration</div>
-//       </div>
-//       ${doubleBooking.reservations
-//         .map(
-//           (res) => `
-//         <div class="guest-card">
-//           <div class="guest-col hostaway-id">${res.hostawayReservationId}</div>
-//           <div class="guest-col name">${res.guestName}</div>
-//           <div class="guest-col listing-name">${
-//             listingsMap.get(res.listingMapId) || res.listingMapId
-//           }</div>
-//           <div class="guest-col nights">${res.nights} nights</div>
-//           <div class="guest-col status">${res.status || "unknown"}</div>
-//           <div class="guest-col duration">
-//             <div class="date-pair">
-//               <div class="date-label">Arrival:</div>
-//               <div class="date-value">${new Date(
-//                 res.arrivalDate
-//               ).toLocaleDateString()}</div>
-//             </div>
-//             <div class="date-pair">
-//               <div class="date-label">Departure:</div>
-//               <div class="date-value">${new Date(
-//                 res.departureDate
-//               ).toLocaleDateString()}</div>
-//             </div>
-//           </div>
-//         </div>
-//       `
-//         )
-//         .join("")}
-//     `;
-
-//     container.appendChild(card);
-//   });
-// }
 
 // Calendar functionality
 const calendarButton = document.getElementById("calendarButton");
