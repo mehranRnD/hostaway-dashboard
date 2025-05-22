@@ -1162,7 +1162,7 @@ async function handlePrint(reservationId, printType) {
                 <div class="form-field"><label>Name:</label><input value="${guestName}" readonly /></div>
                 <div class="form-field"><label>CNIC:</label><input value="${cnic}" readonly /></div>
                 <div class="form-field address-field"><label>Address:</label><input value="${address}" readonly /></div>
-                <div class="form-field"><label>Email:</label><input style="flex: 1; background: transparent; border: none; border-bottom: 1px solid #000; font-size: 10px;" value="${email}" readonly /></div>
+                <div class="form-field"><label>Email:</label><input style="flex: 1; background: transparent; border: none; border-bottom: 1px solid #000; font-size: 13px;" value="${email}" readonly /></div>
                 <div class="form-field"><label>Contact:</label><input value="${contact}" readonly /></div>
                 <div class="form-field"><label>Total Nights:</label><input value="${duration}" readonly /></div>
                 <div class="form-field"><label>Total Amount:</label><input value="${formattedPrice}" readonly /></div>
@@ -1535,6 +1535,8 @@ async function handlePrint(reservationId, printType) {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    border: 1px solid black;
+    padding: 10px 0px 0px 15px;
   }
 
   .field-group {
@@ -1556,7 +1558,7 @@ async function handlePrint(reservationId, printType) {
   }
 </style>
 
-    <p style="font-size: 17px;">
+    <p style="font-size: 17px; text-align: center;">
       I have found all of my belongings and have taken them with me. <br>
        I understand that the Apartment management/host is not responsible for any valuables that are left behind.
     </p>
