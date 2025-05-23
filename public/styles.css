@@ -71,7 +71,7 @@ canvas {
 
 body {
   font-family: "Arial", sans-serif;
-  background-color: var(--background-color);
+  background-color: black;
   color: var(--text-color);
   line-height: 1.6;
 }
@@ -123,6 +123,7 @@ body {
   padding: 1rem;
   background: var(--background-color);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
 }
 
 .header-left {
@@ -724,7 +725,7 @@ body {
 .check-ins-count,
 .check-outs-count {
   /* background: var(--primary-color); */
-  color: var(--text-color);
+  color: white;
   padding: 0.5rem 1rem;
   border-radius: 20px;
   font-weight: bold;
@@ -1287,7 +1288,7 @@ body {
 
 .slack-icon span {
   font-size: 12px;
-  color: #000000 !important;
+  color: #ffffff !important;
   margin-top: 5px;
   font-weight: 500;
 }
