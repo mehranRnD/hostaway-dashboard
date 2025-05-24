@@ -543,20 +543,53 @@ function handleCheckIn(reservation) {
     `.reservation-card[data-res-id="${reservation.hostawayReservationId}"]`
   );
   if (!reservationCard) return;
-  let guestName = reservation.guestName;
-  let apartmentName =
-    listingsMap.get(reservation.listingMapId) || reservation.listingMapId;
 
-  // Save to localStorage
-  const existingCheckIns = JSON.parse(
-    localStorage.getItem("actualCheckIns") || "{}"
-  );
-  existingCheckIns[reservation.hostawayReservationId] = formattedDateTime;
-  localStorage.setItem("actualCheckIns", JSON.stringify(existingCheckIns));
+  // Store check-in in database
+  fetch(`${SERVER_URL}/api/check-ins`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      reservationId: reservation.hostawayReservationId.toString(),
+      checkInTime: now.toISOString(),
+      guestName: reservation.guestName || "Unknown Guest",
+      arrivalDate: reservation.arrivalDate,
+      departureDate: reservation.departureDate,
+      nights: reservation.nights || 0,
+      listingName:
+        listingsMap.get(Number(reservation.listingId)) ||
+        reservation.listingName ||
+        "Unknown Listing",
+      listingMapId: reservation.listingId || "unknown",
+    }),
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      if (data.success) {
+        console.log("Check-in saved to database:", data.data);
+      } else {
+        console.error("Failed to save check-in to database:", data.message);
+      }
+    })
+    .catch((error) => {
+      console.error("Error saving check-in to database:", error);
+    });
 
-  console.log(
-    `Check-in marked for reservation ${reservation.hostawayReservationId} at: ${formattedDateTime}`
-  );
+  console.log("Check-in data being sent:", {
+    reservationId: reservation.hostawayReservationId,
+    checkInTime: now.toISOString(),
+    guestName: reservation.guestName,
+    arrivalDate: reservation.arrivalDate,
+    departureDate: reservation.departureDate,
+    nights: reservation.nights,
+    listingId: reservation.listingId,
+    listingMapId: reservation.listingMapId,
+    listingName: reservation.listingName,
+    allListings: listings,
+    foundInMap: listingsMap.get(Number(reservation.listingId)),
+    reservationObject: reservation,
+  });
 
   // Make API call to update custom field value
   const url = `https://api.hostaway.com/v1/reservations/${reservation.hostawayReservationId}?forceOverbooking=1`;
@@ -608,7 +641,7 @@ function handleCheckIn(reservation) {
     // Create Same Day Check-Out button
     const sameDayCheckOutBtn = document.createElement("button");
     sameDayCheckOutBtn.className = "same-day-checkout-btn";
-    sameDayCheckOutBtn.textContent = "Same Day Check-Out";
+    sameDayCheckOutBtn.textContent = "Same Day Check-Out?";
 
     // Add to actions container
     const actionsDiv = reservationCard.querySelector(".reservation-actions");
@@ -714,7 +747,40 @@ function handleCheckOut(reservation) {
   existingCheckOuts[reservationId] = formattedDateTime;
   localStorage.setItem("actualCheckOuts", JSON.stringify(existingCheckOuts));
 
+  // Store check-out in database
+  fetch(`${SERVER_URL}/api/check-outs`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      reservationId: reservationId.toString(),
+      checkOutTime: now.toISOString(),
+      guestName: reservation.guestName || "Unknown Guest",
+      arrivalDate: reservation.arrivalDate,
+      departureDate: reservation.departureDate,
+      nights: reservation.nights || 0,
+      listingName:
+        listingsMap.get(Number(reservation.listingId)) ||
+        reservation.listingName ||
+        "Unknown Listing",
+      listingMapId: reservation.listingId || "unknown",
+    }),
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      if (data.success) {
+        console.log("Check-out saved to database:", data.data);
+      } else {
+        console.error("Failed to save check-out to database:", data.message);
+      }
+    })
+    .catch((error) => {
+      console.error("Error saving check-out to database:", error);
+    });
+
   const apiUrl = `https://api.hostaway.com/v1/reservations/${reservationId}?forceOverbooking=1`;
+
   fetch(apiUrl, {
     method: "PUT",
     headers: {
@@ -722,43 +788,66 @@ function handleCheckOut(reservation) {
       Authorization: `Bearer ${API_TOKEN}`,
     },
     body: JSON.stringify({
-      customFieldValues: [{ customFieldId: 76282, value: formattedDateTime }],
+      customFieldValues: [
+        {
+          customFieldId: 76282,
+          value: formattedDateTime,
+        },
+      ],
     }),
   })
-    .then(() => updateUI())
+    .then(() => {
+      console.log(
+        "Check-out marked for reservation:",
+        reservation.hostawayReservationId
+      );
+    })
     .catch((err) => console.error("Hostaway error", err));
 
-  // Clone the card for Actual Check-Out section
+  const expectedCheckInsList = document.querySelector("#expectedCheckInsList");
+  const actualCheckInsList = document.querySelector("#actualCheckInsList");
+
+  if (!expectedCheckInsList || !actualCheckInsList) {
+    console.error("Check-in lists not found");
+    return;
+  }
+
   if (reservationCard) {
-    // Clone the card
-    const clonedCard = reservationCard.cloneNode(true);
-
-    // Remove Same Day Check-Out button if it exists
-    const sameDayBtn = clonedCard.querySelector(".same-day-checkout-btn");
-    if (sameDayBtn) {
-      sameDayBtn.remove();
+    // Update the Check-In button to a Print button
+    const checkInBtn = reservationCard.querySelector(".check-in-btn");
+    if (checkInBtn) {
+      checkInBtn.textContent = "Print Check-in";
+      checkInBtn.classList.remove("check-in-btn");
+      checkInBtn.classList.add("print-btn");
+      checkInBtn.setAttribute("data-type", "checkin");
+      checkInBtn.setAttribute("data-res-id", reservation.hostawayReservationId);
     }
 
-    // Update the button in the cloned card
-    const checkOutBtn = clonedCard.querySelector(".check-out-btn");
-    if (checkOutBtn) {
-      // Create a new button to replace the old one
-      const printBtn = document.createElement("button");
-      printBtn.className = "print-btn";
-      printBtn.textContent = "Print Check-out";
-      printBtn.setAttribute("data-res-id", reservationId);
-      printBtn.setAttribute("data-type", "checkout");
+    // Create Same Day Check-Out button
+    const sameDayCheckOutBtn = document.createElement("button");
+    sameDayCheckOutBtn.className = "same-day-checkout-btn";
+    sameDayCheckOutBtn.textContent = "Same Day Check-Out?";
 
-      // Replace the check-out button with the print button
-      checkOutBtn.parentNode.replaceChild(printBtn, checkOutBtn);
+    // Add to actions container
+    const actionsDiv = reservationCard.querySelector(".reservation-actions");
+    if (actionsDiv) {
+      // Avoid duplicating button on re-check-ins
+      if (!actionsDiv.querySelector(".same-day-checkout-btn")) {
+        actionsDiv.appendChild(sameDayCheckOutBtn);
+      }
     }
 
-    // Move the cloned card to actual check-outs section
-    const actualCheckOutsList = document.querySelector("#actualCheckOutsList");
-    if (actualCheckOutsList) {
-      actualCheckOutsList.appendChild(clonedCard);
+    // Move card to Actual Check-In section
+    actualCheckInsList.appendChild(reservationCard);
+
+    // Optional: update label if you use it somewhere
+    const sectionTypeElement = reservationCard.querySelector(".section-type");
+    if (sectionTypeElement) {
+      sectionTypeElement.textContent = "Actual Check-in";
     }
+
     updateUI();
+    fetchReservations();
   }
 }
 
@@ -856,7 +945,7 @@ async function handlePrint(reservationId, printType) {
       }
 
       const data = await response.json();
-      const customFields = data.result?.customFieldValues;
+      const customFields = data.result?.customFieldValues || [];
       console.log("Custom Fields:", customFields);
 
       if (customFields && Array.isArray(customFields)) {
@@ -1471,11 +1560,25 @@ async function handlePrint(reservationId, printType) {
       <img src="img/booknrent-logo.png" alt="Booknrent Logo">
     </div>
     <div class="heading-text">
-      <h2 style="
-              font-size: 20px;
+    ${(() => {
+      const sameDayData = JSON.parse(
+        localStorage.getItem(`sameDayCheckOut_${reservationId}`) || "{}"
+      );
+      const isSameDayCheckout = sameDayData && sameDayData.value === "Yes";
+
+      if (isSameDayCheckout) {
+        return `<h3 style="
               text-align: center;
-              margin: 0;"> ${guestName}'s Check-out Form <span style="font-size: 12px; color: #666;">(${reservationId})</span></h2>
-              <p style="text-align: center; font-family: monospace">Actual Check-out Date / Time: ${actualCheckOutTime}</p>
+              margin: 0;"> ${guestName}'s Same Day Check-out Form <span style="font-size: 12px; color: #666;">(${reservationId})</span></h3>
+              <p style="text-align: center; font-family: monospace">Actual Check-out Date / Time: ${actualCheckOutTime}</p>`;
+      } else {
+        return `<h3 style="
+              text-align: center;
+              margin: 0;"> ${guestName}'s Check-out Form <span style="font-size: 12px; color: #666;">(${reservationId})</span></h3>
+              <p style="text-align: center; font-family: monospace">Actual Check-out Date / Time: ${actualCheckOutTime}</p>`;
+      }
+    })()}
+      
     </div>
 
     <p>
@@ -1493,7 +1596,7 @@ async function handlePrint(reservationId, printType) {
   </div>
   <div class="info-fields">
     <div class="field-group">
-      <span class="field-label">Check Out Date & Time:</span>
+      <span class="field-label">Standard Check Out Date & Time:</span>
       <span class="field-value">${departure} & ${checkOutTime} pm</span>
     </div>
     <div class="field-group">
@@ -1537,6 +1640,7 @@ async function handlePrint(reservationId, printType) {
     gap: 10px;
     border: 1px solid black;
     padding: 10px 0px 0px 15px;
+    margin: -8px 0px 10px 0px;
   }
 
   .field-group {
@@ -2241,8 +2345,8 @@ async function getFinanceFields(reservationId) {
         const exchangeResponse = await fetch(
           "https://v6.exchangerate-api.com/v6/e528361fb75219dbc48899b1/latest/USD"
         );
-        const exchangeData = await exchangeResponse.json();
-        const usdToPkrRate = exchangeData.conversion_rates.PKR;
+        const data = await exchangeResponse.json();
+        const usdToPkrRate = data.conversion_rates.PKR;
 
         // Create new object with converted values
         const convertedFields = { ...financeFields };
@@ -2381,151 +2485,253 @@ document.addEventListener("dateSelected", (e) => {
   fetchReservationsByDate(selectedDate);
 });
 
-function handleSameDayCheckOut(reservation) {
-  const reservationId = reservation.hostawayReservationId;
+async function fetchCheckInOutData() {
+  try {
+    // Fetch check-ins
+    const checkInsResponse = await fetch("/api/check-ins");
+    const checkInsData = await checkInsResponse.json();
 
-  // Fetch reservation details first
-  const apiUrl = `https://api.hostaway.com/v1/reservations/${reservationId}`;
-  fetch(apiUrl, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${API_TOKEN}`,
-    },
-  })
-    .then((response) => response.json())
-    .then((reservationData) => {
-      const customFields = reservationData.result.customFieldValues;
+    if (checkInsData.success) {
+      console.log("Check-ins from database:", checkInsData.data);
+    }
 
-      // Find the specific custom field with ID 77304 (Same day Check-out)
-      const sameDayCheckOutField = customFields.find(
-        (field) => field.customFieldId === 77304
-      );
+    // Fetch check-outs
+    const checkOutsResponse = await fetch("/api/check-outs");
+    const checkOutsData = await checkOutsResponse.json();
 
-      if (sameDayCheckOutField) {
-        console.log("Value:", sameDayCheckOutField.value);
+    if (checkOutsData.success) {
+      console.log("Check-outs from database:", checkOutsData.data);
+    }
 
-        // Store the same-day check-out status in localStorage
-        const sameDayStatus =
-          sameDayCheckOutField.value === "No" ||
-          sameDayCheckOutField.value === "";
-        localStorage.setItem(
-          `sameDayCheckOut_${reservationId}`,
-          JSON.stringify({
-            disabled: sameDayStatus,
-            value: sameDayCheckOutField.value,
-          })
-        );
+    return {
+      checkIns: checkInsData.data || [],
+      checkOuts: checkOutsData.data || [],
+    };
+  } catch (error) {
+    console.error("Error fetching check-in/out data:", error);
+    return { checkIns: [], checkOuts: [] };
+  }
+}
 
-        // Disable button if value is "No" or empty
-        const sameDayBtn = document.querySelector(
-          `.same-day-checkout-btn[data-res-id="${reservationId}"]`
-        );
-        if (sameDayBtn) {
-          if (sameDayStatus) {
-            sameDayBtn.disabled = true;
-            sameDayBtn.style.opacity = "0.5";
-            sameDayBtn.title =
-              "Same day check-out not allowed for this reservation";
-            // Don't proceed with checkout if value is "No" or empty
-            return;
-          } else {
-            sameDayBtn.disabled = false;
-            sameDayBtn.style.opacity = "1";
-            sameDayBtn.title = "";
-          }
-        }
-      } else {
-        console.log("Same Day Check-Out Field not found.");
-        // Store unknown status
-        localStorage.setItem(
-          `sameDayCheckOut_${reservationId}`,
-          JSON.stringify({
-            disabled: true,
-            value: "unknown",
-          })
-        );
-        // Don't proceed if field not found
-        return;
+// Call this function when the page loads
+document.addEventListener("DOMContentLoaded", () => {
+  const todayStr = new Date().toISOString().split("T")[0];
+  fetchReservationsByDate(todayStr);
+
+  // Fetch and log check-in/out data
+  fetchCheckInOutData();
+});
+
+function launchConfettiCelebration() {
+  // Create confetti canvas
+  const confettiSettings = {
+    target: "confetti-canvas",
+    max: 150,
+    size: 1.5,
+    animate: true,
+    respawn: true,
+    props: [
+      { type: "circle" },
+      { type: "square" },
+      { type: "triangle" },
+      { type: "line" },
+    ],
+    colors: ["#ff0000", "#00ff00", "#0000ff", "#ffff00", "#ff00ff", "#00ffff"],
+    clock: 50,
+  };
+
+  // Initialize confetti
+  const confetti = new ConfettiGenerator(confettiSettings);
+  confetti.render();
+
+  // Stop after 5 seconds
+  setTimeout(() => {
+    confetti.clear();
+  }, 5000);
+}
+
+// Function to show full house notice
+function triggerFullHouseNotice() {
+  const notice = document.createElement("div");
+  notice.className = "full-house-notice";
+  notice.innerHTML = `
+    <div class="full-house-content">
+      <h2>🎉 Full House! 🎉</h2>
+      <p>All listings are booked for today!</p>
+      <button onclick="this.parentElement.parentElement.remove()">Close</button>
+    </div>
+  `;
+  document.body.appendChild(notice);
+
+  // Auto-remove after 10 seconds
+  setTimeout(() => {
+    if (document.body.contains(notice)) {
+      document.body.removeChild(notice);
+    }
+  }, 10000);
+}
+
+// Add CSS for the full house notice
+const fullHouseStyle = document.createElement("style");
+fullHouseStyle.textContent = `
+  .full-house-notice {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    animation: fadeIn 0.5s;
+  }
+  
+  .full-house-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    animation: popIn 0.5s;
+  }
+  
+  .full-house-content h2 {
+    margin: 0 0 1rem 0;
+    color: #2c3e50;
+  }
+  
+  .full-house-content p {
+    margin: 0 0 1.5rem 0;
+    font-size: 1.2rem;
+  }
+  
+  .full-house-content button {
+    background: #3498db;
+    color: white;
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background 0.3s;
+  }
+  
+  .full-house-content button:hover {
+    background: #2980b9;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes popIn {
+    0% { transform: scale(0.8); opacity: 0; }
+    80% { transform: scale(1.05); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+`;
+document.head.appendChild(fullHouseStyle);
+
+// Add confetti canvas to the page
+const confettiCanvas = document.createElement("div");
+confettiCanvas.id = "confetti-canvas";
+confettiCanvas.style.position = "fixed";
+confettiCanvas.style.top = "0";
+confettiCanvas.style.left = "0";
+confettiCanvas.style.width = "100%";
+confettiCanvas.style.height = "100%";
+confettiCanvas.style.pointerEvents = "none";
+confettiCanvas.style.zIndex = "9998";
+confettiCanvas.style.display = "none"; // Hide the canvas as we'll use it with canvas-confetti
+document.body.appendChild(confettiCanvas);
+
+// Function to load confetti script
+function loadConfettiScript(callback) {
+  if (typeof confetti === "function") {
+    callback();
+    return;
+  }
+
+  const script = document.createElement("script");
+  script.src =
+    "https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js";
+  script.onload = () => {
+    console.log("Confetti script loaded successfully");
+    callback();
+  };
+  script.onerror = () => {
+    console.error("Failed to load confetti script");
+  };
+  document.head.appendChild(script);
+}
+
+// Function to launch confetti celebration
+function launchConfettiCelebration() {
+  loadConfettiScript(() => {
+    try {
+      // Create a confetti effect
+      const duration = 5 * 1000; // 5 seconds
+      const animationEnd = Date.now() + duration;
+      const defaults = {
+        startVelocity: 30,
+        spread: 360,
+        ticks: 60,
+        zIndex: 9999,
+      };
+
+      function randomInRange(min, max) {
+        return Math.random() * (max - min) + min;
       }
 
-      // Proceed with checkout only if value is not "No" or empty
-      const now = new Date();
-      const formattedDateTime = now.toLocaleString("en-US", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      });
+      const interval = setInterval(() => {
+        const timeLeft = animationEnd - Date.now();
 
-      // Save to local storage
-      const existingCheckOuts = JSON.parse(
-        localStorage.getItem("actualCheckOuts") || "{}"
-      );
-      existingCheckOuts[reservationId] = formattedDateTime;
-      localStorage.setItem(
-        "actualCheckOuts",
-        JSON.stringify(existingCheckOuts)
-      );
+        if (timeLeft <= 0) {
+          return clearInterval(interval);
+        }
 
-      // Update Hostaway
-      const updateUrl = `https://api.hostaway.com/v1/reservations/${reservationId}?forceOverbooking=1`;
-      fetch(updateUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${API_TOKEN}`,
-        },
-        body: JSON.stringify({
-          status: "stayed",
-          customFieldValues: [
-            { customFieldId: 76282, value: formattedDateTime }, // Actual Check-out
+        const particleCount = 50 * (timeLeft / duration);
+
+        // Launch from the left edge
+        confetti({
+          ...defaults,
+          particleCount,
+          origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
+          colors: [
+            "#ff0000",
+            "#00ff00",
+            "#0000ff",
+            "#ffff00",
+            "#ff00ff",
+            "#00ffff",
           ],
-        }),
-      })
-        .then(() => {
-          // Move to Actual Check-Out section
-          const reservationCard = document.querySelector(
-            `.reservation-card[data-res-id="${reservationId}"]`
-          );
+        });
 
-          if (reservationCard) {
-            // Remove Same Day Check-Out button
-            const sameDayBtn = reservationCard.querySelector(
-              ".same-day-checkout-btn"
-            );
-            if (sameDayBtn) {
-              sameDayBtn.remove();
-            }
+        // Launch from the right edge
+        confetti({
+          ...defaults,
+          particleCount,
+          origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
+          colors: [
+            "#ff0000",
+            "#00ff00",
+            "#0000ff",
+            "#ffff00",
+            "#ff00ff",
+            "#00ffff",
+          ],
+        });
+      }, 250);
 
-            // Replace Check-out button with Print Check-out button
-            const checkOutBtn = reservationCard.querySelector(".check-out-btn");
-            if (checkOutBtn) {
-              const printBtn = document.createElement("button");
-              printBtn.className = "print-btn";
-              printBtn.textContent = "Print Check-out";
-              printBtn.setAttribute("data-res-id", reservationId);
-              printBtn.setAttribute("data-type", "checkout");
-              checkOutBtn.parentNode.replaceChild(printBtn, checkOutBtn);
-            }
-
-            // Move to Actual Check-Out section
-            const actualCheckOutsList = document.querySelector(
-              "#actualCheckOutsList"
-            );
-            if (actualCheckOutsList) {
-              actualCheckOutsList.appendChild(reservationCard);
-              updateUI();
-            }
-          }
-        })
-        .catch((err) =>
-          console.error("Error updating reservation status", err)
-        );
-    })
-    .catch((err) => console.error("Error fetching reservation details", err));
+      // Stop after duration
+      setTimeout(() => clearInterval(interval), duration);
+    } catch (error) {
+      console.error("Error initializing confetti:", error);
+    }
+  });
 }
 
 // Calendar functionality
@@ -2818,3 +3024,237 @@ document.addEventListener("dateSelected", (e) => {
   const selectedDate = e.detail.date.toISOString().split("T")[0];
   fetchReservationsByDate(selectedDate);
 });
+
+async function fetchCheckInOutData() {
+  try {
+    // Fetch check-ins
+    const checkInsResponse = await fetch("/api/check-ins");
+    const checkInsData = await checkInsResponse.json();
+
+    if (checkInsData.success) {
+      console.log("Check-ins from database:", checkInsData.data);
+    }
+
+    // Fetch check-outs
+    const checkOutsResponse = await fetch("/api/check-outs");
+    const checkOutsData = await checkOutsResponse.json();
+
+    if (checkOutsData.success) {
+      console.log("Check-outs from database:", checkOutsData.data);
+    }
+
+    return {
+      checkIns: checkInsData.data || [],
+      checkOuts: checkOutsData.data || [],
+    };
+  } catch (error) {
+    console.error("Error fetching check-in/out data:", error);
+    return { checkIns: [], checkOuts: [] };
+  }
+}
+
+// Call this function when the page loads
+document.addEventListener("DOMContentLoaded", () => {
+  const todayStr = new Date().toISOString().split("T")[0];
+  fetchReservationsByDate(todayStr);
+
+  // Fetch and log check-in/out data
+  fetchCheckInOutData();
+});
+
+function launchConfettiCelebration() {
+  // Create confetti canvas
+  const confettiSettings = {
+    target: "confetti-canvas",
+    max: 150,
+    size: 1.5,
+    animate: true,
+    respawn: true,
+    props: [
+      { type: "circle" },
+      { type: "square" },
+      { type: "triangle" },
+      { type: "line" },
+    ],
+    colors: ["#ff0000", "#00ff00", "#0000ff", "#ffff00", "#ff00ff", "#00ffff"],
+    clock: 50,
+  };
+
+  // Initialize confetti
+  const confetti = new ConfettiGenerator(confettiSettings);
+  confetti.render();
+
+  // Stop after 5 seconds
+  setTimeout(() => {
+    confetti.clear();
+  }, 5000);
+}
+
+// Function to show full house notice
+function triggerFullHouseNotice() {
+  const notice = document.createElement("div");
+  notice.className = "full-house-notice";
+  notice.innerHTML = `
+    <div class="full-house-content">
+      <h2>🎉 Full House! 🎉</h2>
+      <p>All listings are booked for today!</p>
+      <button onclick="this.parentElement.parentElement.remove()">Close</button>
+    </div>
+  `;
+  document.body.appendChild(notice);
+
+  // Auto-remove after 10 seconds
+  setTimeout(() => {
+    if (document.body.contains(notice)) {
+      document.body.removeChild(notice);
+    }
+  }, 10000);
+}
+
+// Function to load confetti script
+function loadConfettiScript(callback) {
+  if (window.ConfettiGenerator) {
+    callback();
+    return;
+  }
+
+  const script = document.createElement("script");
+  script.src =
+    "https://cdn.jsdelivr.net/npm/confetti-js@0.0.18/dist/index.min.js";
+  script.onload = () => {
+    console.log("Confetti script loaded successfully");
+    callback();
+  };
+  script.onerror = () => {
+    console.error("Failed to load confetti script");
+  };
+  document.head.appendChild(script);
+}
+
+// Function to launch confetti celebration
+function launchConfettiCelebration() {
+  loadConfettiScript(() => {
+    try {
+      // Create confetti canvas
+      const confettiSettings = {
+        target: "confetti-canvas",
+        max: 150,
+        size: 1.5,
+        animate: true,
+        respawn: true,
+        props: [
+          { type: "circle" },
+          { type: "square" },
+          { type: "triangle" },
+          { type: "line" },
+        ],
+        colors: [
+          "#ff0000",
+          "#00ff00",
+          "#0000ff",
+          "#ffff00",
+          "#ff00ff",
+          "#00ffff",
+        ],
+        clock: 50,
+      };
+
+      // Initialize confetti
+      const confetti = new ConfettiGenerator(confettiSettings);
+      confetti.render();
+
+      // Stop after 5 seconds
+      setTimeout(() => {
+        confetti.clear();
+      }, 5000);
+    } catch (error) {
+      console.error("Error initializing confetti:", error);
+    }
+  });
+}
+
+// Function to load confetti script
+function loadConfettiScript(callback) {
+  if (typeof confetti === "function") {
+    callback();
+    return;
+  }
+
+  const script = document.createElement("script");
+  script.src =
+    "https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js";
+  script.onload = () => {
+    console.log("Confetti script loaded successfully");
+    callback();
+  };
+  script.onerror = () => {
+    console.error("Failed to load confetti script");
+  };
+  document.head.appendChild(script);
+}
+
+// Function to launch confetti celebration
+function launchConfettiCelebration() {
+  loadConfettiScript(() => {
+    try {
+      // Create a confetti effect
+      const duration = 5 * 1000; // 5 seconds
+      const animationEnd = Date.now() + duration;
+      const defaults = {
+        startVelocity: 30,
+        spread: 360,
+        ticks: 60,
+        zIndex: 9999,
+      };
+
+      function randomInRange(min, max) {
+        return Math.random() * (max - min) + min;
+      }
+
+      const interval = setInterval(() => {
+        const timeLeft = animationEnd - Date.now();
+
+        if (timeLeft <= 0) {
+          return clearInterval(interval);
+        }
+
+        const particleCount = 50 * (timeLeft / duration);
+
+        // Launch from the left edge
+        confetti({
+          ...defaults,
+          particleCount,
+          origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
+          colors: [
+            "#ff0000",
+            "#00ff00",
+            "#0000ff",
+            "#ffff00",
+            "#ff00ff",
+            "#00ffff",
+          ],
+        });
+
+        // Launch from the right edge
+        confetti({
+          ...defaults,
+          particleCount,
+          origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
+          colors: [
+            "#ff0000",
+            "#00ff00",
+            "#0000ff",
+            "#ffff00",
+            "#ff00ff",
+            "#00ffff",
+          ],
+        });
+      }, 250);
+
+      // Stop after duration
+      setTimeout(() => clearInterval(interval), duration);
+    } catch (error) {
+      console.error("Error initializing confetti:", error);
+    }
+  });
+}
