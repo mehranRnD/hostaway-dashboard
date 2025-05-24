@@ -543,6 +543,15 @@ function handleCheckIn(reservation) {
     `.reservation-card[data-res-id="${reservation.hostawayReservationId}"]`
   );
   if (!reservationCard) return;
+const existingCheckIns = JSON.parse(
+  localStorage.getItem("actualCheckIns") || "{}"
+);
+existingCheckIns[reservation.hostawayReservationId] = formattedDateTime;
+localStorage.setItem("actualCheckIns", JSON.stringify(existingCheckIns));
+
+console.log(
+  `Check-in marked for reservation ${reservation.hostawayReservationId} at: ${formattedDateTime}`
+);
 
   // Store check-in in database
   fetch(`${SERVER_URL}/api/check-ins`, {
@@ -576,25 +585,9 @@ function handleCheckIn(reservation) {
       console.error("Error saving check-in to database:", error);
     });
 
-  console.log("Check-in data being sent:", {
-    reservationId: reservation.hostawayReservationId,
-    checkInTime: now.toISOString(),
-    guestName: reservation.guestName,
-    arrivalDate: reservation.arrivalDate,
-    departureDate: reservation.departureDate,
-    nights: reservation.nights,
-    listingId: reservation.listingId,
-    listingMapId: reservation.listingMapId,
-    listingName: reservation.listingName,
-    allListings: listings,
-    foundInMap: listingsMap.get(Number(reservation.listingId)),
-    reservationObject: reservation,
-  });
+  const apiUrl = `https://api.hostaway.com/v1/reservations/${reservationId}?forceOverbooking=1`;
 
-  // Make API call to update custom field value
-  const url = `https://api.hostaway.com/v1/reservations/${reservation.hostawayReservationId}?forceOverbooking=1`;
-
-  fetch(url, {
+  fetch(apiUrl, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -804,46 +797,32 @@ function handleCheckOut(reservation) {
     })
     .catch((err) => console.error("Hostaway error", err));
 
-  const expectedCheckInsList = document.querySelector("#expectedCheckInsList");
-  const actualCheckInsList = document.querySelector("#actualCheckInsList");
+  const actualCheckOutsList = document.querySelector("#actualCheckOutsList");
+  const expectedCheckOutsList = document.querySelector("#expectedCheckOutsList");
 
-  if (!expectedCheckInsList || !actualCheckInsList) {
-    console.error("Check-in lists not found");
+  if (!actualCheckOutsList || !expectedCheckOutsList) {
+    console.error("Check-out lists not found");
     return;
   }
 
   if (reservationCard) {
-    // Update the Check-In button to a Print button
-    const checkInBtn = reservationCard.querySelector(".check-in-btn");
-    if (checkInBtn) {
-      checkInBtn.textContent = "Print Check-in";
-      checkInBtn.classList.remove("check-in-btn");
-      checkInBtn.classList.add("print-btn");
-      checkInBtn.setAttribute("data-type", "checkin");
-      checkInBtn.setAttribute("data-res-id", reservation.hostawayReservationId);
+    // Update the Check-Out button to a Print button
+    const checkOutBtn = reservationCard.querySelector(".check-out-btn");
+    if (checkOutBtn) {
+      checkOutBtn.textContent = "Print Check-out";
+      checkOutBtn.classList.remove("check-out-btn");
+      checkOutBtn.classList.add("print-btn");
+      checkOutBtn.setAttribute("data-type", "checkout");
+      checkOutBtn.setAttribute("data-res-id", reservation.hostawayReservationId);
     }
 
-    // Create Same Day Check-Out button
-    const sameDayCheckOutBtn = document.createElement("button");
-    sameDayCheckOutBtn.className = "same-day-checkout-btn";
-    sameDayCheckOutBtn.textContent = "Same Day Check-Out?";
+    // Move card to Actual Check-Out section
+    actualCheckOutsList.appendChild(reservationCard);
 
-    // Add to actions container
-    const actionsDiv = reservationCard.querySelector(".reservation-actions");
-    if (actionsDiv) {
-      // Avoid duplicating button on re-check-ins
-      if (!actionsDiv.querySelector(".same-day-checkout-btn")) {
-        actionsDiv.appendChild(sameDayCheckOutBtn);
-      }
-    }
-
-    // Move card to Actual Check-In section
-    actualCheckInsList.appendChild(reservationCard);
-
-    // Optional: update label if you use it somewhere
+    // Update the section type label if it exists
     const sectionTypeElement = reservationCard.querySelector(".section-type");
     if (sectionTypeElement) {
-      sectionTypeElement.textContent = "Actual Check-in";
+      sectionTypeElement.textContent = "Actual Check-out";
     }
 
     updateUI();
@@ -2571,82 +2550,67 @@ function triggerFullHouseNotice() {
   }, 10000);
 }
 
-// Add CSS for the full house notice
-const fullHouseStyle = document.createElement("style");
-fullHouseStyle.textContent = `
-  .full-house-notice {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.8);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-    animation: fadeIn 0.5s;
+// Function to load confetti script
+function loadConfettiScript(callback) {
+  if (window.ConfettiGenerator) {
+    callback();
+    return;
   }
-  
-  .full-house-content {
-    background: white;
-    padding: 2rem;
-    border-radius: 10px;
-    text-align: center;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    animation: popIn 0.5s;
-  }
-  
-  .full-house-content h2 {
-    margin: 0 0 1rem 0;
-    color: #2c3e50;
-  }
-  
-  .full-house-content p {
-    margin: 0 0 1.5rem 0;
-    font-size: 1.2rem;
-  }
-  
-  .full-house-content button {
-    background: #3498db;
-    color: white;
-    border: none;
-    padding: 0.5rem 1.5rem;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1rem;
-    transition: background 0.3s;
-  }
-  
-  .full-house-content button:hover {
-    background: #2980b9;
-  }
-  
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  
-  @keyframes popIn {
-    0% { transform: scale(0.8); opacity: 0; }
-    80% { transform: scale(1.05); }
-    100% { transform: scale(1); opacity: 1; }
-  }
-`;
-document.head.appendChild(fullHouseStyle);
 
-// Add confetti canvas to the page
-const confettiCanvas = document.createElement("div");
-confettiCanvas.id = "confetti-canvas";
-confettiCanvas.style.position = "fixed";
-confettiCanvas.style.top = "0";
-confettiCanvas.style.left = "0";
-confettiCanvas.style.width = "100%";
-confettiCanvas.style.height = "100%";
-confettiCanvas.style.pointerEvents = "none";
-confettiCanvas.style.zIndex = "9998";
-confettiCanvas.style.display = "none"; // Hide the canvas as we'll use it with canvas-confetti
-document.body.appendChild(confettiCanvas);
+  const script = document.createElement("script");
+  script.src =
+    "https://cdn.jsdelivr.net/npm/confetti-js@0.0.18/dist/index.min.js";
+  script.onload = () => {
+    console.log("Confetti script loaded successfully");
+    callback();
+  };
+  script.onerror = () => {
+    console.error("Failed to load confetti script");
+  };
+  document.head.appendChild(script);
+}
+
+// Function to launch confetti celebration
+function launchConfettiCelebration() {
+  loadConfettiScript(() => {
+    try {
+      // Create confetti canvas
+      const confettiSettings = {
+        target: "confetti-canvas",
+        max: 150,
+        size: 1.5,
+        animate: true,
+        respawn: true,
+        props: [
+          { type: "circle" },
+          { type: "square" },
+          { type: "triangle" },
+          { type: "line" },
+        ],
+        colors: [
+          "#ff0000",
+          "#00ff00",
+          "#0000ff",
+          "#ffff00",
+          "#ff00ff",
+          "#00ffff",
+        ],
+        clock: 50,
+      };
+
+      // Initialize confetti
+      const confetti = new ConfettiGenerator(confettiSettings);
+      confetti.render();
+
+      // Stop after 5 seconds
+      setTimeout(() => {
+        confetti.clear();
+      }, 5000);
+    } catch (error) {
+      console.error("Error initializing confetti:", error);
+    }
+  });
+}
 
 // Function to load confetti script
 function loadConfettiScript(callback) {
@@ -3258,3 +3222,5 @@ function launchConfettiCelebration() {
     }
   });
 }
+
+
