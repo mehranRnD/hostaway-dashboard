@@ -585,7 +585,7 @@ console.log(
       console.error("Error saving check-in to database:", error);
     });
 
-  const apiUrl = `https://api.hostaway.com/v1/reservations/${reservationId}?forceOverbooking=1`;
+  const apiUrl = `https://api.hostaway.com/v1/reservations/${reservation.hostawayReservationId}?forceOverbooking=1`;
 
   fetch(apiUrl, {
     method: "PUT",
