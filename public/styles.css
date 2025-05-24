@@ -71,7 +71,7 @@ canvas {
 
 body {
   font-family: "Arial", sans-serif;
-  background-color: var(--background-color);
+  background-color: black;
   color: var(--text-color);
   line-height: 1.6;
 }
@@ -123,6 +123,7 @@ body {
   padding: 1rem;
   background: var(--background-color);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
 }
 
 .header-left {
@@ -272,7 +273,8 @@ body {
 .check-in-btn,
 .check-out-btn,
 .print-btn,
-.guest-portal-btn {
+.guest-portal-btn,
+.same-day-checkout-btn {
   background: #005303;
   color: white;
   border: none;
@@ -293,6 +295,16 @@ body {
 
 .print-btn {
   background: #000000;
+}
+.same-day-checkout-btn {
+  background-color: #0099cc;
+  color: white;
+}
+
+.same-day-checkout-btn:hover {
+  background-color: #007a99;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .check-in-btn:hover,
@@ -713,7 +725,7 @@ body {
 .check-ins-count,
 .check-outs-count {
   /* background: var(--primary-color); */
-  color: var(--text-color);
+  color: white;
   padding: 0.5rem 1rem;
   border-radius: 20px;
   font-weight: bold;
@@ -1276,7 +1288,7 @@ body {
 
 .slack-icon span {
   font-size: 12px;
-  color: #000000 !important;
+  color: #ffffff !important;
   margin-top: 5px;
   font-weight: 500;
 }
@@ -1457,7 +1469,6 @@ body {
   color: #718096; /* gray-600 */
 }
 
-
 /* Table css */
 .table-container {
   overflow-x: auto;
@@ -1471,7 +1482,7 @@ body {
   width: 100%;
   border-collapse: collapse;
   font-size: 15px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .styled-table thead tr {
@@ -1499,4 +1510,3 @@ body {
 .status.pending {
   color: #cc7a00;
 }
-
