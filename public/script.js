@@ -585,7 +585,7 @@ console.log(
       console.error("Error saving check-in to database:", error);
     });
 
-  const apiUrl = `https://api.hostaway.com/v1/reservations/${reservationId}?forceOverbooking=1`;
+  const apiUrl = `https://api.hostaway.com/v1/reservations/${reservation.hostawayReservationId}?forceOverbooking=1`;
 
   fetch(apiUrl, {
     method: "PUT",
@@ -2697,7 +2697,154 @@ function launchConfettiCelebration() {
     }
   });
 }
+function handleSameDayCheckOut(reservation) {
+  const reservationId = reservation.hostawayReservationId;
 
+  // Fetch reservation details first
+  const apiUrl = `https://api.hostaway.com/v1/reservations/${reservationId}`;
+  fetch(apiUrl, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${API_TOKEN}`,
+    },
+  })
+    .then((response) => response.json())
+    .then((reservationData) => {
+      const customFields = reservationData.result.customFieldValues;
+
+      // Find the specific custom field with ID 77304 (Same day Check-out)
+      const sameDayCheckOutField = customFields.find(
+        (field) => field.customFieldId === 77304
+      );
+
+      if (sameDayCheckOutField) {
+        console.log("Value:", sameDayCheckOutField.value);
+
+        // Store the same-day check-out status in localStorage
+        const sameDayStatus =
+          sameDayCheckOutField.value === "No" ||
+          sameDayCheckOutField.value === "";
+        localStorage.setItem(
+          `sameDayCheckOut_${reservationId}`,
+          JSON.stringify({
+            disabled: sameDayStatus,
+            value: sameDayCheckOutField.value,
+          })
+        );
+
+        // Disable button if value is "No" or empty
+        const sameDayBtn = document.querySelector(
+          `.same-day-checkout-btn[data-res-id="${reservationId}"]`
+        );
+        if (sameDayBtn) {
+          if (sameDayStatus) {
+            sameDayBtn.disabled = true;
+            sameDayBtn.style.opacity = "0.5";
+            sameDayBtn.title =
+              "Same day check-out not allowed for this reservation";
+            // Don't proceed with checkout if value is "No" or empty
+            return;
+          } else {
+            sameDayBtn.disabled = false;
+            sameDayBtn.style.opacity = "1";
+            sameDayBtn.title = "";
+          }
+        }
+      } else {
+        console.log("Same Day Check-Out Field not found.");
+        // Store unknown status
+        localStorage.setItem(
+          `sameDayCheckOut_${reservationId}`,
+          JSON.stringify({
+            disabled: true,
+            value: "unknown",
+          })
+        );
+        // Don't proceed if field not found
+        return;
+      }
+
+      // Proceed with checkout only if value is not "No" or empty
+      const now = new Date();
+      const formattedDateTime = now.toLocaleString("en-US", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+
+      // Save to local storage
+      const existingCheckOuts = JSON.parse(
+        localStorage.getItem("actualCheckOuts") || "{}"
+      );
+      existingCheckOuts[reservationId] = formattedDateTime;
+      localStorage.setItem(
+        "actualCheckOuts",
+        JSON.stringify(existingCheckOuts)
+      );
+
+      // Update Hostaway
+      const updateUrl = `https://api.hostaway.com/v1/reservations/${reservationId}?forceOverbooking=1`;
+      fetch(updateUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${API_TOKEN}`,
+        },
+        body: JSON.stringify({
+          status: "stayed",
+          customFieldValues: [
+            { customFieldId: 76282, value: formattedDateTime }, // Actual Check-out
+          ],
+        }),
+      })
+        .then(() => {
+          // Move to Actual Check-Out section
+          const reservationCard = document.querySelector(
+            `.reservation-card[data-res-id="${reservationId}"]`
+          );
+
+          if (reservationCard) {
+            // Remove Same Day Check-Out button
+            const sameDayBtn = reservationCard.querySelector(
+              ".same-day-checkout-btn"
+            );
+            if (sameDayBtn) {
+              sameDayBtn.remove();
+            }
+
+            // Replace Check-out button with Print Check-out button
+            const checkOutBtn = reservationCard.querySelector(".check-out-btn");
+            if (checkOutBtn) {
+              const printBtn = document.createElement("button");
+              printBtn.className = "print-btn";
+              printBtn.textContent = "Print Check-out";
+              printBtn.setAttribute("data-res-id", reservationId);
+              printBtn.setAttribute("data-type", "checkout");
+
+              // Replace the check-out button with the print button
+              checkOutBtn.parentNode.replaceChild(printBtn, checkOutBtn);
+            }
+
+            // Move to Actual Check-Out section
+            const actualCheckOutsList = document.querySelector(
+              "#actualCheckOutsList"
+            );
+            if (actualCheckOutsList) {
+              actualCheckOutsList.appendChild(reservationCard);
+              updateUI();
+            }
+          }
+        })
+        .catch((err) =>
+          console.error("Error updating reservation status", err)
+        );
+    })
+    .catch((err) => console.error("Error fetching reservation details", err));
+}
 // Calendar functionality
 const calendarButton = document.getElementById("calendarButton");
 const calendarDropdown = document.getElementById("calendarDropdown");
