@@ -187,10 +187,19 @@ app.post("/api/check-outs", async (req, res) => {
       });
     }
 
-    // Create new check-out record with only reservationId
+    // Create new check-out record with all required fields
     const checkOut = new CheckOut({
       reservationId,
       checkOutTime: req.body.checkOutTime || new Date(),
+      guestName: req.body.guestName || "Unknown Guest",
+      arrivalDate:
+        req.body.arrivalDate || new Date().toISOString().split("T")[0],
+      departureDate:
+        req.body.departureDate ||
+        new Date(Date.now() + 86400000).toISOString().split("T")[0], // Default to tomorrow
+      nights: req.body.nights || 0,
+      listingName: req.body.listingName || "Unknown Listing",
+      listingMapId: req.body.listingMapId || "unknown",
     });
 
     await checkOut.save();

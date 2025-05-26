@@ -28,21 +28,16 @@ const listings = [
   { listingId: 309909, listingName: "GF-06 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 323227, listingName: "4F-42 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 323229, listingName: "1F-10 (A) (S)", listingType: "Studio" },
-  {
-    listingId: 323258,
-    listingName: "1F-10 (B) (1B)",
-    listingType: "1 Bed Room",
-  },
+  { listingId: 323258, listingName: "1F-10 (B) (1B)", listingType: "1 Bed Room" },
   { listingId: 323261, listingName: "1F-10 (C) (S)", listingType: "Studio" },
   { listingId: 336255, listingName: "8F-80 (S)", listingType: "Studio" },
   { listingId: 378076, listingName: "6F-60 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 378078, listingName: "6F-57 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 383744, listingName: "5F-53 (1B)", listingType: "1 Bed Room" },
-  {
-    listingId: 387834,
-    listingName: "Upper Crest (1B) UAE",
-    listingType: "1 Bed Room",
-  },
+  { listingId: 387834, listingName: "Upper Crest (1B) UAE", listingType: "1 Bed Room" },
+  { listingId: 389366, listingName: "1F-13 (3B)", listingType: "3 Bed Room" },
+  { listingId: 392230, listingName: "Arch Tower", listingType: "Studio" },
+  { listingId: 387833, listingName: "2101 Bay's Edge", listingType: "1 Bed Room" },
 ];
 
 // Maps listingId to listing name
@@ -537,21 +532,23 @@ function handleCheckIn(reservation) {
     minute: "2-digit",
     second: "2-digit",
   });
-
+  let guestName = reservation.guestName;
+  let apartmentName =
+    listingsMap.get(reservation.listingMapId) || reservation.listingMapId;
   // Get guest and apartment info
   const reservationCard = document.querySelector(
     `.reservation-card[data-res-id="${reservation.hostawayReservationId}"]`
   );
   if (!reservationCard) return;
-const existingCheckIns = JSON.parse(
-  localStorage.getItem("actualCheckIns") || "{}"
-);
-existingCheckIns[reservation.hostawayReservationId] = formattedDateTime;
-localStorage.setItem("actualCheckIns", JSON.stringify(existingCheckIns));
+  const existingCheckIns = JSON.parse(
+    localStorage.getItem("actualCheckIns") || "{}"
+  );
+  existingCheckIns[reservation.hostawayReservationId] = formattedDateTime;
+  localStorage.setItem("actualCheckIns", JSON.stringify(existingCheckIns));
 
-console.log(
-  `Check-in marked for reservation ${reservation.hostawayReservationId} at: ${formattedDateTime}`
-);
+  console.log(
+    `Check-in marked for reservation ${reservation.hostawayReservationId} at: ${formattedDateTime}`
+  );
 
   // Store check-in in database
   fetch(`${SERVER_URL}/api/check-ins`, {
@@ -562,15 +559,12 @@ console.log(
     body: JSON.stringify({
       reservationId: reservation.hostawayReservationId.toString(),
       checkInTime: now.toISOString(),
-      guestName: reservation.guestName || "Unknown Guest",
+      guestName: guestName || "Unknown Guest",
       arrivalDate: reservation.arrivalDate,
       departureDate: reservation.departureDate,
-      nights: reservation.nights || 0,
-      listingName:
-        listingsMap.get(Number(reservation.listingId)) ||
-        reservation.listingName ||
-        "Unknown Listing",
-      listingMapId: reservation.listingId || "unknown",
+      nights: reservation.nights || 1,
+      listingName: apartmentName || "Unknown Listing",
+      listingMapId: reservation.listingMapId || "unknown",
     }),
   })
     .then((response) => response.json())
@@ -749,15 +743,12 @@ function handleCheckOut(reservation) {
     body: JSON.stringify({
       reservationId: reservationId.toString(),
       checkOutTime: now.toISOString(),
-      guestName: reservation.guestName || "Unknown Guest",
+      guestName: guestName || "Unknown Guest",
       arrivalDate: reservation.arrivalDate,
       departureDate: reservation.departureDate,
       nights: reservation.nights || 0,
-      listingName:
-        listingsMap.get(Number(reservation.listingId)) ||
-        reservation.listingName ||
-        "Unknown Listing",
-      listingMapId: reservation.listingId || "unknown",
+      listingName: apartmentName || "Unknown Listing",
+      listingMapId: reservation.listingMapId || "unknown",
     }),
   })
     .then((response) => response.json())
@@ -798,7 +789,9 @@ function handleCheckOut(reservation) {
     .catch((err) => console.error("Hostaway error", err));
 
   const actualCheckOutsList = document.querySelector("#actualCheckOutsList");
-  const expectedCheckOutsList = document.querySelector("#expectedCheckOutsList");
+  const expectedCheckOutsList = document.querySelector(
+    "#expectedCheckOutsList"
+  );
 
   if (!actualCheckOutsList || !expectedCheckOutsList) {
     console.error("Check-out lists not found");
@@ -813,7 +806,10 @@ function handleCheckOut(reservation) {
       checkOutBtn.classList.remove("check-out-btn");
       checkOutBtn.classList.add("print-btn");
       checkOutBtn.setAttribute("data-type", "checkout");
-      checkOutBtn.setAttribute("data-res-id", reservation.hostawayReservationId);
+      checkOutBtn.setAttribute(
+        "data-res-id",
+        reservation.hostawayReservationId
+      );
     }
 
     // Move card to Actual Check-Out section
@@ -841,7 +837,19 @@ document.addEventListener("DOMContentLoaded", () => {
         e.stopImmediatePropagation();
         const reservationId = e.target.getAttribute("data-res-id");
         if (reservationId) {
-          handleCheckIn({ hostawayReservationId: reservationId });
+          // Get the full reservation object from the card
+          const card =
+            e.target.closest(".reservation-card") ||
+            document.querySelector(
+              `.reservation-card[data-res-id="${reservationId}"]`
+            );
+          if (card && card.dataset.reservation) {
+            const reservation = JSON.parse(card.dataset.reservation);
+            handleCheckIn(reservation);
+          } else {
+            // Fallback to just the ID if we can't get the full reservation
+            handleCheckIn({ hostawayReservationId: reservationId });
+          }
         }
         return false;
       }
@@ -852,13 +860,16 @@ document.addEventListener("DOMContentLoaded", () => {
         const reservationId = e.target.getAttribute("data-res-id");
         if (reservationId) {
           // Get the full reservation object from the card
-          const card = document.querySelector(
-            `.reservation-card[data-res-id="${reservationId}"]`
-          );
-          if (card) {
-            const reservation = JSON.parse(card.dataset.reservation || "{}");
+          const card =
+            e.target.closest(".reservation-card") ||
+            document.querySelector(
+              `.reservation-card[data-res-id="${reservationId}"]`
+            );
+          if (card && card.dataset.reservation) {
+            const reservation = JSON.parse(card.dataset.reservation);
             handleCheckOut(reservation);
           } else {
+            // Fallback to just the ID if we can't get the full reservation
             handleCheckOut({ hostawayReservationId: reservationId });
           }
         }
@@ -3369,5 +3380,3 @@ function launchConfettiCelebration() {
     }
   });
 }
-
-
