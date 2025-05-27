@@ -28,16 +28,28 @@ const listings = [
   { listingId: 309909, listingName: "GF-06 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 323227, listingName: "4F-42 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 323229, listingName: "1F-10 (A) (S)", listingType: "Studio" },
-  { listingId: 323258, listingName: "1F-10 (B) (1B)", listingType: "1 Bed Room" },
+  {
+    listingId: 323258,
+    listingName: "1F-10 (B) (1B)",
+    listingType: "1 Bed Room",
+  },
   { listingId: 323261, listingName: "1F-10 (C) (S)", listingType: "Studio" },
   { listingId: 336255, listingName: "8F-80 (S)", listingType: "Studio" },
   { listingId: 378076, listingName: "6F-60 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 378078, listingName: "6F-57 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 383744, listingName: "5F-53 (1B)", listingType: "1 Bed Room" },
-  { listingId: 387834, listingName: "Upper Crest (1B) UAE", listingType: "1 Bed Room" },
+  {
+    listingId: 387834,
+    listingName: "Upper Crest (1B) UAE",
+    listingType: "1 Bed Room",
+  },
   { listingId: 389366, listingName: "1F-13 (3B)", listingType: "3 Bed Room" },
   { listingId: 392230, listingName: "Arch Tower", listingType: "Studio" },
-  { listingId: 387833, listingName: "2101 Bay's Edge", listingType: "1 Bed Room" },
+  {
+    listingId: 387833,
+    listingName: "2101 Bay's Edge",
+    listingType: "1 Bed Room",
+  },
 ];
 
 // Maps listingId to listing name
@@ -2475,33 +2487,6 @@ document.addEventListener("dateSelected", (e) => {
   fetchReservationsByDate(selectedDate);
 });
 
-async function fetchCheckInOutData() {
-  try {
-    // Fetch check-ins
-    const checkInsResponse = await fetch("/api/check-ins");
-    const checkInsData = await checkInsResponse.json();
-
-    if (checkInsData.success) {
-      console.log("Check-ins from database:", checkInsData.data);
-    }
-
-    // Fetch check-outs
-    const checkOutsResponse = await fetch("/api/check-outs");
-    const checkOutsData = await checkOutsResponse.json();
-
-    if (checkOutsData.success) {
-      console.log("Check-outs from database:", checkOutsData.data);
-    }
-
-    return {
-      checkIns: checkInsData.data || [],
-      checkOuts: checkOutsData.data || [],
-    };
-  } catch (error) {
-    console.error("Error fetching check-in/out data:", error);
-    return { checkIns: [], checkOuts: [] };
-  }
-}
 
 // Call this function when the page loads
 document.addEventListener("DOMContentLoaded", () => {
@@ -2509,7 +2494,8 @@ document.addEventListener("DOMContentLoaded", () => {
   fetchReservationsByDate(todayStr);
 
   // Fetch and log check-in/out data
-  fetchCheckInOutData();
+
+  fetchAndDisplayTotalCheckIns(); // Add this line
 });
 
 function launchConfettiCelebration() {
@@ -2708,6 +2694,7 @@ function launchConfettiCelebration() {
     }
   });
 }
+
 function handleSameDayCheckOut(reservation) {
   const reservationId = reservation.hostawayReservationId;
 
@@ -2786,7 +2773,9 @@ function handleSameDayCheckOut(reservation) {
         minute: "2-digit",
         second: "2-digit",
       });
-
+      let guestName = reservation.guestName;
+      let apartmentName =
+        listingsMap.get(reservation.listingMapId) || reservation.listingMapId;
       // Save to local storage
       const existingCheckOuts = JSON.parse(
         localStorage.getItem("actualCheckOuts") || "{}"
@@ -2812,6 +2801,25 @@ function handleSameDayCheckOut(reservation) {
           ],
         }),
       })
+        .then(() => {
+          // Save same-day checkout to database
+          return fetch("/api/same-day-check-outs", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              reservationId: reservation.hostawayReservationId,
+              guestName: guestName || "Unknown Guest",
+              listingName: apartmentName || "Unknown Listing",
+              arrivalDate: reservation.arrivalDate || "",
+              departureDate: reservation.departureDate || "",
+              nights: reservation.nights || 0,
+
+              listingMapId: reservation.listingMapId || "unknown",
+            }),
+          });
+        })
         .then(() => {
           // Move to Actual Check-Out section
           const reservationCard = document.querySelector(
@@ -3049,7 +3057,138 @@ animateOnView(".section", {
   duration: 1000,
   easing: "easeOutExpo",
 });
+// Function to fetch and display total check-ins
+async function fetchAndDisplayTotalCheckIns() {
+  try {
+    const response = await fetch("/api/check-ins");
+    const data = await response.json();
 
+    if (data.success) {
+      const totalCheckInsList = document.getElementById("totalCheckInsList");
+      if (totalCheckInsList) {
+        // Clear existing content
+        totalCheckInsList.innerHTML = "";
+
+        // Create and append cards for each check-in
+        data.data.forEach((checkIn) => {
+          const card = createCheckInCard(checkIn);
+          totalCheckInsList.appendChild(card);
+        });
+      }
+    } else {
+      console.error("Failed to fetch check-ins:", data.message);
+    }
+  } catch (error) {
+    console.error("Error fetching check-ins:", error);
+  }
+}
+
+// Function to create a check-in card
+function createCheckInCard(checkIn) {
+  const card = document.createElement("div");
+  card.className = "reservation-card";
+
+  // Format dates
+  const arrivalDate = new Date(checkIn.arrivalDate).toLocaleDateString();
+  const departureDate = new Date(checkIn.departureDate).toLocaleDateString();
+  const checkInTime = new Date(checkIn.checkInTime).toLocaleString();
+
+  card.innerHTML = `
+    <div class="reservation-header">
+      <h3>${checkIn.guestName} <span style="font-size: 12px; color: #666;">(${
+    checkIn.reservationId
+  })</span></h3>
+      <span class="status-badge">Checked In </span>
+    </div>
+    <div class="reservation-details">
+      <div class="guest-info">
+        <p><strong>Listing Name:</strong> ${checkIn.listingName}</p>
+          <p><strong>Arrival:</strong> ${arrivalDate}</p>
+      
+      </div>
+      <div class="stay-details">
+         <p><strong>Nights:</strong> ${checkIn.nights || "N/A"}</p>
+        <p><strong>Departure:</strong> ${departureDate}</p>
+       
+        <p><small>Checked in at: ${checkInTime}</small></p>
+      </div>
+    </div>
+  `;
+
+  return card;
+}
+// Function to fetch and display total check-outs
+async function fetchAndDisplayTotalCheckOuts() {
+  try {
+    // Fetch regular check-outs
+    const [checkOutsRes, sameDayCheckOutsRes] = await Promise.all([
+      fetch("/api/check-outs"),
+      fetch("/api/same-day-check-outs")
+    ]);
+
+    const checkOutsData = await checkOutsRes.json();
+    const sameDayCheckOutsData = await sameDayCheckOutsRes.json();
+
+    const totalCheckOutsList = document.getElementById("totalCheckOutsList");
+    if (totalCheckOutsList) {
+      // Clear existing content
+      totalCheckOutsList.innerHTML = "";
+
+      // Process and display regular check-outs
+      if (checkOutsData.success) {
+        checkOutsData.data.forEach(checkOut => {
+          const card = createCheckOutCard(checkOut, false);
+          totalCheckOutsList.appendChild(card);
+        });
+      }
+
+      // Process and display same-day check-outs
+      if (sameDayCheckOutsData.success) {
+        sameDayCheckOutsData.data.forEach(checkOut => {
+          const card = createCheckOutCard(checkOut, true);
+          totalCheckOutsList.appendChild(card);
+        });
+      }
+    }
+  } catch (error) {
+    console.error("Error fetching check-outs:", error);
+  }
+}
+
+// Function to create a check-out card
+function createCheckOutCard(checkOut, isSameDay) {
+  const card = document.createElement("div");
+  card.className = "reservation-card";
+
+  // Format dates
+  const arrivalDate = new Date(checkOut.arrivalDate).toLocaleDateString();
+  const departureDate = new Date(checkOut.departureDate).toLocaleDateString();
+  const checkOutTime = new Date(checkOut.checkOutTime || checkOut.checkOutTime).toLocaleString();
+
+  card.innerHTML = `
+    <div class="reservation-header">
+      <h3>${checkOut.guestName} <span style="font-size: 12px; color: #666;">(${
+    checkOut.reservationId
+  })</span></h3>
+      <span class="status-badge">Checked Out </span>
+    </div>
+    <div class="reservation-details">
+      <div class="guest-info">
+        <p><strong>Listing Name:</strong> ${checkOut.listingName}</p>
+          <p><strong>Arrival:</strong> ${arrivalDate}</p>
+      
+      </div>
+      <div class="stay-details">
+         <p><strong>Nights:</strong> ${checkOut.nights || "N/A"}</p>
+        <p><strong>Departure:</strong> ${departureDate}</p>
+       
+        <p><small>Checked out at: ${checkOutTime}</small></p>
+      </div>
+    </div>
+  `;
+
+  return card;
+}
 // Call the function to fetch and display listings
 fetchAndDisplayListings();
 
@@ -3164,14 +3303,21 @@ async function fetchCheckInOutData() {
     if (checkOutsData.success) {
       console.log("Check-outs from database:", checkOutsData.data);
     }
+// Fetch same day check-outs
+    const sameDayCheckOutsResponse = await fetch("/api/same-day-check-outs");
+    const sameDayCheckOutsData = await sameDayCheckOutsResponse.json();
 
+    if (sameDayCheckOutsData.success) {
+      console.log("Same-day check-outs from database:", sameDayCheckOutsData.data);
+    }
     return {
       checkIns: checkInsData.data || [],
       checkOuts: checkOutsData.data || [],
+      sameDayCheckOuts: sameDayCheckOutsData.data || [],
     };
   } catch (error) {
     console.error("Error fetching check-in/out data:", error);
-    return { checkIns: [], checkOuts: [] };
+    return { checkIns: [], checkOuts: [], sameDayCheckOuts: [] };
   }
 }
 
@@ -3182,6 +3328,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Fetch and log check-in/out data
   fetchCheckInOutData();
+
+  fetchAndDisplayTotalCheckIns(); // Add this line
+  fetchAndDisplayTotalCheckOuts(); // Add this line to load check-outs
+
 });
 
 function launchConfettiCelebration() {
