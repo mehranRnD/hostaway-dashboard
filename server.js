@@ -20,16 +20,9 @@ app.use(express.json());
 
 // MongoDB connection
 mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => {
-    console.log("Connected to MongoDB Atlas");
-  })
-  .catch((err) => {
-    console.error("MongoDB connection error:", err);
-  });
+  .connect(process.env.MONGODB_URI)
+  .then(() => console.log("MongoDB connected successfully ✔️"))
+  .catch((err) => console.error("MongoDB connection error:", err));
 
 // Serve static files from "public" folder
 app.use(express.static(path.join(__dirname, "public")));
@@ -151,28 +144,40 @@ app.post("/api/check-ins", async (req, res) => {
 // Get all checked-in reservations
 app.get("/api/check-ins", async (req, res) => {
   try {
-    const checkIns = await CheckIn.find({}).sort({ checkInTime: -1 });
+    const checkIns = await CheckIn.find({}).sort({ checkInTime: -1 }).lean();
 
     // Format dates in response
-    const formattedCheckIns = checkIns.map((checkIn) => ({
-      ...checkIn._doc,
-      checkInTime: formatDate(checkIn.checkInTime),
-    }));
+    const formattedCheckIns = checkIns.map((checkIn) => {
+      return {
+        ...checkIn,
+        checkInTime: checkIn.checkInTime
+          ? checkIn.checkInTime.toISOString()
+          : null,
+        arrivalDate: checkIn.arrivalDate,
+        departureDate: checkIn.departureDate,
+      };
+    });
 
     res.status(200).json({
       success: true,
       data: formattedCheckIns,
     });
   } catch (error) {
-    console.error("Error fetching check-ins:", error);
+    console.error("Error in /api/check-ins:", {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+    });
     res.status(500).json({
       success: false,
       message: "Failed to fetch check-ins",
-      error: error.message,
+      error:
+        process.env.NODE_ENV === "development"
+          ? error.message
+          : "Internal server error",
     });
   }
 });
-
 // Check-out route
 app.post("/api/check-outs", async (req, res) => {
   try {
@@ -200,11 +205,8 @@ app.post("/api/check-outs", async (req, res) => {
       reservationId,
       checkOutTime: req.body.checkOutTime || new Date(),
       guestName: req.body.guestName || "Unknown Guest",
-      arrivalDate:
-        req.body.arrivalDate || new Date().toISOString().split("T")[0],
-      departureDate:
-        req.body.departureDate ||
-        new Date(Date.now() + 86400000).toISOString().split("T")[0], // Default to tomorrow
+      arrivalDate: req.body.arrivalDate || new Date().toISOString().split("T")[0],
+      departureDate: req.body.departureDate || new Date(Date.now() + 86400000).toISOString().split("T")[0], // Default to tomorrow
       nights: req.body.nights || 0,
       listingName: req.body.listingName || "Unknown Listing",
       listingMapId: req.body.listingMapId || "unknown",
@@ -257,7 +259,6 @@ app.get("/api/check-outs", async (req, res) => {
     });
   }
 });
-
 // Same-day check-out route
 app.post("/api/same-day-check-outs", async (req, res) => {
   try {
@@ -346,7 +347,6 @@ app.get("/api/same-day-check-outs", async (req, res) => {
     });
   }
 });
-
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });

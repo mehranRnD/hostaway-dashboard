@@ -1528,8 +1528,17 @@ body {
   color: #333;
 }
 
-.status-badge {
+.status-badge-checkin {
   background-color: #005303;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-badge-checkout {
+  background-color: #8c0000;
   color: white;
   padding: 4px 8px;
   border-radius: 3px;

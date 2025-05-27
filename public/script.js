@@ -675,13 +675,13 @@ function updateUI() {
     expectedCheckInsCount.textContent = expectedCheckIns.length;
   }
 
-  // Update the count of actual check-ins
-  const actualCheckInsCount = document.getElementById("actualCheckInsCount");
-  if (actualCheckInsCount) {
-    const actualCheckIns = document.querySelectorAll(
-      "#actualCheckInsList .reservation-card"
+  // Update the count of total check-ins
+  const totalCheckInsCount = document.getElementById("todayTotalCheckInsCount");
+  if (totalCheckInsCount) {
+    const totalCheckIns = document.querySelectorAll(
+      "#totalCheckInsList .reservation-card"
     );
-    actualCheckInsCount.textContent = actualCheckIns.length;
+    totalCheckInsCount.textContent = totalCheckIns.length;
   }
 
   // Update the count of expected check-outs
@@ -2487,7 +2487,6 @@ document.addEventListener("dateSelected", (e) => {
   fetchReservationsByDate(selectedDate);
 });
 
-
 // Call this function when the page loads
 document.addEventListener("DOMContentLoaded", () => {
   const todayStr = new Date().toISOString().split("T")[0];
@@ -3098,7 +3097,7 @@ function createCheckInCard(checkIn) {
       <h3>${checkIn.guestName} <span style="font-size: 12px; color: #666;">(${
     checkIn.reservationId
   })</span></h3>
-      <span class="status-badge">Checked In </span>
+      <span class="status-badge-checkin">Checked In </span>
     </div>
     <div class="reservation-details">
       <div class="guest-info">
@@ -3123,7 +3122,7 @@ async function fetchAndDisplayTotalCheckOuts() {
     // Fetch regular check-outs
     const [checkOutsRes, sameDayCheckOutsRes] = await Promise.all([
       fetch("/api/check-outs"),
-      fetch("/api/same-day-check-outs")
+      fetch("/api/same-day-check-outs"),
     ]);
 
     const checkOutsData = await checkOutsRes.json();
@@ -3136,7 +3135,7 @@ async function fetchAndDisplayTotalCheckOuts() {
 
       // Process and display regular check-outs
       if (checkOutsData.success) {
-        checkOutsData.data.forEach(checkOut => {
+        checkOutsData.data.forEach((checkOut) => {
           const card = createCheckOutCard(checkOut, false);
           totalCheckOutsList.appendChild(card);
         });
@@ -3144,7 +3143,7 @@ async function fetchAndDisplayTotalCheckOuts() {
 
       // Process and display same-day check-outs
       if (sameDayCheckOutsData.success) {
-        sameDayCheckOutsData.data.forEach(checkOut => {
+        sameDayCheckOutsData.data.forEach((checkOut) => {
           const card = createCheckOutCard(checkOut, true);
           totalCheckOutsList.appendChild(card);
         });
@@ -3163,14 +3162,16 @@ function createCheckOutCard(checkOut, isSameDay) {
   // Format dates
   const arrivalDate = new Date(checkOut.arrivalDate).toLocaleDateString();
   const departureDate = new Date(checkOut.departureDate).toLocaleDateString();
-  const checkOutTime = new Date(checkOut.checkOutTime || checkOut.checkOutTime).toLocaleString();
+  const checkOutTime = new Date(
+    checkOut.checkOutTime || checkOut.checkOutTime
+  ).toLocaleString();
 
   card.innerHTML = `
     <div class="reservation-header">
       <h3>${checkOut.guestName} <span style="font-size: 12px; color: #666;">(${
     checkOut.reservationId
   })</span></h3>
-      <span class="status-badge">Checked Out </span>
+      <span class="status-badge-checkout">Checked Out </span>
     </div>
     <div class="reservation-details">
       <div class="guest-info">
@@ -3182,7 +3183,7 @@ function createCheckOutCard(checkOut, isSameDay) {
          <p><strong>Nights:</strong> ${checkOut.nights || "N/A"}</p>
         <p><strong>Departure:</strong> ${departureDate}</p>
        
-        <p><small>Checked out at: ${checkOutTime}</small></p>
+        <p><small>Checked in at: ${checkOutTime}</small></p>
       </div>
     </div>
   `;
@@ -3303,12 +3304,15 @@ async function fetchCheckInOutData() {
     if (checkOutsData.success) {
       console.log("Check-outs from database:", checkOutsData.data);
     }
-// Fetch same day check-outs
+    // Fetch same day check-outs
     const sameDayCheckOutsResponse = await fetch("/api/same-day-check-outs");
     const sameDayCheckOutsData = await sameDayCheckOutsResponse.json();
 
     if (sameDayCheckOutsData.success) {
-      console.log("Same-day check-outs from database:", sameDayCheckOutsData.data);
+      console.log(
+        "Same-day check-outs from database:",
+        sameDayCheckOutsData.data
+      );
     }
     return {
       checkIns: checkInsData.data || [],
@@ -3331,7 +3335,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   fetchAndDisplayTotalCheckIns(); // Add this line
   fetchAndDisplayTotalCheckOuts(); // Add this line to load check-outs
-
 });
 
 function launchConfettiCelebration() {
