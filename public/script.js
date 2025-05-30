@@ -28,28 +28,17 @@ const listings = [
   { listingId: 309909, listingName: "GF-06 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 323227, listingName: "4F-42 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 323229, listingName: "1F-10 (A) (S)", listingType: "Studio" },
-  {
-    listingId: 323258,
-    listingName: "1F-10 (B) (1B)",
-    listingType: "1 Bed Room",
-  },
+  { listingId: 323258, listingName: "1F-10 (B) (1B)", listingType: "1 Bed Room" },
   { listingId: 323261, listingName: "1F-10 (C) (S)", listingType: "Studio" },
   { listingId: 336255, listingName: "8F-80 (S)", listingType: "Studio" },
   { listingId: 378076, listingName: "6F-60 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 378078, listingName: "6F-57 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 383744, listingName: "5F-53 (1B)", listingType: "1 Bed Room" },
-  {
-    listingId: 387834,
-    listingName: "Upper Crest (1B) UAE",
-    listingType: "1 Bed Room",
-  },
+  { listingId: 387834, listingName: "Upper Crest (1B) UAE", listingType: "1 Bed Room" },
   { listingId: 389366, listingName: "1F-13 (3B)", listingType: "3 Bed Room" },
   { listingId: 392230, listingName: "Arch Tower", listingType: "Studio" },
-  {
-    listingId: 387833,
-    listingName: "2101 Bay's Edge",
-    listingType: "1 Bed Room",
-  },
+  { listingId: 387833, listingName: "2101 Bay's Edge", listingType: "1 Bed Room" },
+  { listingId: 395345, listingName: "9F-83 (2B)", listingType: "2 Bed Room" },
 ];
 
 // Maps listingId to listing name
@@ -590,6 +579,34 @@ function handleCheckIn(reservation) {
     .catch((error) => {
       console.error("Error saving check-in to database:", error);
     });
+  // Notify Latenode webhook about check-in
+  console.log('Sending check-in notification for reservation ID:', reservation.hostawayReservationId);
+  fetch(`${SERVER_URL}/api/notify-checkin`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      reservationId: reservation.hostawayReservationId.toString(),
+    }),
+  })
+    .then(async (response) => {
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to notify Latenode');
+      }
+      return data;
+    })
+    .then((data) => {
+      console.log("Check-in notification sent to Latenode", data);
+    })
+    .catch((error) => {
+      console.error("Error details:", {
+        message: error.message,
+        status: error.status,
+        stack: error.stack
+      });
+    });
 
   const apiUrl = `https://api.hostaway.com/v1/reservations/${reservation.hostawayReservationId}?forceOverbooking=1`;
 
@@ -723,28 +740,16 @@ function handleCheckOut(reservation) {
   const reservationCard = document.querySelector(
     `.reservation-card[data-res-id="${reservationId}"]`
   );
-  if (reservationCard) {
-    const guestEl = reservationCard.querySelector(".guestName");
-    const aptEl = reservationCard.querySelector(".apartmentName");
-    if (guestEl) guestName = guestEl.textContent.trim();
-    if (aptEl) apartmentName = aptEl.textContent.trim();
-  }
-
-  // Prevent sending if missing data
-  if (
-    !guestName ||
-    !apartmentName ||
-    guestName === "Guest" ||
-    apartmentName === "Apartment"
-  )
-    return;
-
-  // Local storage and Hostaway update
+  if (!reservationCard) return;
   const existingCheckOuts = JSON.parse(
     localStorage.getItem("actualCheckOuts") || "{}"
   );
   existingCheckOuts[reservationId] = formattedDateTime;
   localStorage.setItem("actualCheckOuts", JSON.stringify(existingCheckOuts));
+
+  console.log(
+    `Check-out marked for reservation ${reservation.hostawayReservationId} at: ${formattedDateTime}`
+  );
 
   // Store check-out in database
   fetch(`${SERVER_URL}/api/check-outs`, {
@@ -1111,13 +1116,16 @@ async function handlePrint(reservationId, printType) {
       }
     }
 
+    // Calculate the final price after subtracting 5000
+    const finalPrice = convertedTotalPrice ? convertedTotalPrice - 5000 : 0;
+
     // Format the price with Rs. prefix
     const formattedPrice = convertedTotalPrice
-      ? `Rs. ${convertedTotalPrice.toLocaleString()}`
+      ? `Rs. ${finalPrice.toLocaleString()}`
       : "N/A";
 
-    const duration = reservation.nights || "1";
-    const pricePerNight = (convertedTotalPrice / duration).toFixed(2);
+    const duration = reservation.nights || 1;
+    const pricePerNight = (finalPrice / duration).toFixed(2);
 
     // Get dates
     const arrival = new Date(reservation.arrivalDate).toLocaleDateString();
@@ -2863,6 +2871,7 @@ function handleSameDayCheckOut(reservation) {
     })
     .catch((err) => console.error("Error fetching reservation details", err));
 }
+
 // Calendar functionality
 const calendarButton = document.getElementById("calendarButton");
 const calendarDropdown = document.getElementById("calendarDropdown");

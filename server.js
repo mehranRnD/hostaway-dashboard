@@ -27,46 +27,6 @@ mongoose
 // Serve static files from "public" folder
 app.use(express.static(path.join(__dirname, "public")));
 
-// Slack notification route
-app.post("/send-to-slack", async (req, res) => {
-  try {
-    const slackWebhookUrl =
-      "https://hooks.slack.com/services/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";
-    const { text } = req.body;
-
-    console.log("Sending Slack notification:", text);
-
-    if (!text) {
-      return res.status(400).json({ error: "Text message is required" });
-    }
-
-    const response = await fetch(slackWebhookUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ text }),
-    });
-
-    console.log("Slack response status:", response.status);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Slack webhook error response:", errorText);
-      throw new Error(
-        `Slack webhook request failed with status ${response.status}: ${errorText}`
-      );
-    }
-
-    res.status(200).json({ message: "Notification sent to Slack" });
-  } catch (error) {
-    console.error("Error sending to Slack:", error);
-    res.status(500).json({
-      error: "Failed to send notification to Slack",
-      details: error.message,
-    });
-  }
-});
 
 // Helper function to format date
 const formatDate = (date) => {
@@ -146,8 +106,22 @@ app.get("/api/check-ins", async (req, res) => {
   try {
     const checkIns = await CheckIn.find({}).sort({ checkInTime: -1 }).lean();
 
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date().toISOString().split("T")[0];
+
     // Format dates in response
     const formattedCheckIns = checkIns.map((checkIn) => {
+      // Check if arrivalDate is NOT today's date
+      if (checkIn.arrivalDate !== today) {
+        console.log("Check-in with non-today arrivalDate:", {
+          reservationId: checkIn.reservationId,
+          guestName: checkIn.guestName,
+          arrivalDate: checkIn.arrivalDate,
+          departureDate: checkIn.departureDate,
+          listingName: checkIn.listingName,
+        });
+      }
+
       return {
         ...checkIn,
         checkInTime: checkIn.checkInTime
@@ -157,6 +131,9 @@ app.get("/api/check-ins", async (req, res) => {
         departureDate: checkIn.departureDate,
       };
     });
+
+    // Delete documents with arrivalDate NOT equal to today's date
+    await CheckIn.deleteMany({ arrivalDate: { $ne: today } });
 
     res.status(200).json({
       success: true,
@@ -178,6 +155,7 @@ app.get("/api/check-ins", async (req, res) => {
     });
   }
 });
+
 // Check-out route
 app.post("/api/check-outs", async (req, res) => {
   try {
@@ -205,8 +183,11 @@ app.post("/api/check-outs", async (req, res) => {
       reservationId,
       checkOutTime: req.body.checkOutTime || new Date(),
       guestName: req.body.guestName || "Unknown Guest",
-      arrivalDate: req.body.arrivalDate || new Date().toISOString().split("T")[0],
-      departureDate: req.body.departureDate || new Date(Date.now() + 86400000).toISOString().split("T")[0], // Default to tomorrow
+      arrivalDate:
+        req.body.arrivalDate || new Date().toISOString().split("T")[0],
+      departureDate:
+        req.body.departureDate ||
+        new Date(Date.now() + 86400000).toISOString().split("T")[0], // Default to tomorrow
       nights: req.body.nights || 0,
       listingName: req.body.listingName || "Unknown Listing",
       listingMapId: req.body.listingMapId || "unknown",
@@ -240,11 +221,30 @@ app.get("/api/check-outs", async (req, res) => {
   try {
     const checkOuts = await CheckOut.find({}).sort({ checkOutTime: -1 });
 
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date().toISOString().split("T")[0];
+
     // Format dates in response
-    const formattedCheckOuts = checkOuts.map((checkOut) => ({
-      ...checkOut._doc,
-      checkOutTime: formatDate(checkOut.checkOutTime),
-    }));
+    const formattedCheckOuts = checkOuts.map((checkOut) => {
+      // Check if departureDate is NOT today's date
+      if (checkOut.departureDate !== today) {
+        console.log("Check-out with non-today departureDate:", {
+          reservationId: checkOut.reservationId,
+          guestName: checkOut.guestName,
+          departureDate: checkOut.departureDate,
+          arrivalDate: checkOut.arrivalDate,
+          listingName: checkOut.listingName,
+        });
+      }
+
+      return {
+        ...checkOut._doc,
+        checkOutTime: formatDate(checkOut.checkOutTime),
+      };
+    });
+
+    // Delete documents with departureDate NOT equal to today's date
+    await CheckOut.deleteMany({ departureDate: { $ne: today } });
 
     res.status(200).json({
       success: true,
@@ -259,6 +259,7 @@ app.get("/api/check-outs", async (req, res) => {
     });
   }
 });
+
 // Same-day check-out route
 app.post("/api/same-day-check-outs", async (req, res) => {
   try {
@@ -328,11 +329,30 @@ app.get("/api/same-day-check-outs", async (req, res) => {
       checkOutTime: -1,
     });
 
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date().toISOString().split("T")[0];
+
     // Format dates in response
-    const formattedSameDayCheckOuts = sameDayCheckOuts.map((checkOut) => ({
-      ...checkOut._doc,
-      checkOutTime: formatDate(checkOut.checkOutTime),
-    }));
+    const formattedSameDayCheckOuts = sameDayCheckOuts.map((checkOut) => {
+      // Check if arrivalDate is NOT today's date
+      if (checkOut.arrivalDate !== today) {
+        console.log("Same-day check-out with non-today arrivalDate:", {
+          reservationId: checkOut.reservationId,
+          guestName: checkOut.guestName,
+          arrivalDate: checkOut.arrivalDate,
+          departureDate: checkOut.departureDate,
+          listingName: checkOut.listingName,
+        });
+      }
+
+      return {
+        ...checkOut._doc,
+        checkOutTime: formatDate(checkOut.checkOutTime),
+      };
+    });
+
+    // Delete records with arrivalDate NOT equal to today's date
+    await SameDayCheckOut.deleteMany({ arrivalDate: { $ne: today } });
 
     res.status(200).json({
       success: true,
@@ -347,6 +367,8 @@ app.get("/api/same-day-check-outs", async (req, res) => {
     });
   }
 });
+
+
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
