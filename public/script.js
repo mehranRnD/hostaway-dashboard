@@ -3192,7 +3192,7 @@ function createCheckOutCard(checkOut, isSameDay) {
          <p><strong>Nights:</strong> ${checkOut.nights || "N/A"}</p>
         <p><strong>Departure:</strong> ${departureDate}</p>
        
-        <p><small>Checked in at: ${checkOutTime}</small></p>
+        <p><small>Checked out at: ${checkOutTime}</small></p>
       </div>
     </div>
   `;
