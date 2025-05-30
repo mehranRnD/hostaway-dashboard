@@ -1552,11 +1552,13 @@ body {
   gap: 12px;
 }
 
-.guest-info p, .stay-details p {
+.guest-info p,
+.stay-details p {
   display: flex;
 }
 
-.guest-info strong, .stay-details strong {
+.guest-info strong,
+.stay-details strong {
   color: #666;
   margin-right: 8px;
 }
@@ -1564,7 +1566,6 @@ body {
 .stay-details {
   text-align: right;
 }
-
 
 /* For the check-in time at the bottom */
 .stay-details p:last-child {
@@ -1576,3 +1577,6 @@ body {
   padding-top: 8px;
   border-top: 1px dashed #eee;
 }
+
+
+

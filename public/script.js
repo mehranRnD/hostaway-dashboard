@@ -28,16 +28,28 @@ const listings = [
   { listingId: 309909, listingName: "GF-06 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 323227, listingName: "4F-42 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 323229, listingName: "1F-10 (A) (S)", listingType: "Studio" },
-  { listingId: 323258, listingName: "1F-10 (B) (1B)", listingType: "1 Bed Room" },
+  {
+    listingId: 323258,
+    listingName: "1F-10 (B) (1B)",
+    listingType: "1 Bed Room",
+  },
   { listingId: 323261, listingName: "1F-10 (C) (S)", listingType: "Studio" },
   { listingId: 336255, listingName: "8F-80 (S)", listingType: "Studio" },
   { listingId: 378076, listingName: "6F-60 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 378078, listingName: "6F-57 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 383744, listingName: "5F-53 (1B)", listingType: "1 Bed Room" },
-  { listingId: 387834, listingName: "Upper Crest (1B) UAE", listingType: "1 Bed Room" },
+  {
+    listingId: 387834,
+    listingName: "Upper Crest (1B) UAE",
+    listingType: "1 Bed Room",
+  },
   { listingId: 389366, listingName: "1F-13 (3B)", listingType: "3 Bed Room" },
   { listingId: 392230, listingName: "Arch Tower", listingType: "Studio" },
-  { listingId: 387833, listingName: "2101 Bay's Edge", listingType: "1 Bed Room" },
+  {
+    listingId: 387833,
+    listingName: "2101 Bay's Edge",
+    listingType: "1 Bed Room",
+  },
   { listingId: 395345, listingName: "9F-83 (2B)", listingType: "2 Bed Room" },
 ];
 
@@ -580,7 +592,10 @@ function handleCheckIn(reservation) {
       console.error("Error saving check-in to database:", error);
     });
   // Notify Latenode webhook about check-in
-  console.log('Sending check-in notification for reservation ID:', reservation.hostawayReservationId);
+  console.log(
+    "Sending check-in notification for reservation ID:",
+    reservation.hostawayReservationId
+  );
   fetch(`${SERVER_URL}/api/notify-checkin`, {
     method: "POST",
     headers: {
@@ -593,7 +608,7 @@ function handleCheckIn(reservation) {
     .then(async (response) => {
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to notify Latenode');
+        throw new Error(data.message || "Failed to notify Latenode");
       }
       return data;
     })
@@ -604,7 +619,7 @@ function handleCheckIn(reservation) {
       console.error("Error details:", {
         message: error.message,
         status: error.status,
-        stack: error.stack
+        stack: error.stack,
       });
     });
 
@@ -921,6 +936,8 @@ async function handlePrint(reservationId, printType) {
   const guestName = reservation.guestName || "";
   const departure = reservation.departureDate || "";
   const checkOutTime = reservation.checkOutTime || "";
+  let vehicleNumber = reservation.vehicleNumber || "";
+const arrival = reservation.arrivalDate || "";
 
   // Create print content based on type
   let printContent;
@@ -1420,6 +1437,19 @@ async function handlePrint(reservationId, printType) {
         } else {
           console.log("Damage Charges not found.");
         }
+        // Get Vehicle Number
+        const vehicleNumberField = customFields.find(
+          (item) =>
+            item.customFieldId === 62072 &&
+            item.customField?.name === "Vehicle Number"
+        );
+
+        if (vehicleNumberField) {
+          vehicleNumber = vehicleNumberField.value;
+          console.log("Vehicle Number:", vehicleNumber);
+        } else {
+          console.log("Vehicle Number not found.");
+        }
         // Get Late Checkout Charges
         const lateCheckoutField = customFields.find(
           (item) =>
@@ -1500,7 +1530,7 @@ async function handlePrint(reservationId, printType) {
       margin: 10px 0;
     }
     p {
-      line-height: 1.6;
+      line-height: 1.5;
       font-size: 17px;
     }
     ul {
@@ -1532,29 +1562,42 @@ async function handlePrint(reservationId, printType) {
       width: 80%;
     }
     .footer {
-      margin-top: 20px;
-      text-align: center;
       font-size: 12px;
       color: #666;
+      display: inline-block;
+      vertical-align: top;
+      width: 50%;
+      margin-top: -15px;
     }
+    
     .charges-breakdown {
-  
-    margin: 10px;
-    padding: 10px;
-    text-align: left;         
-    width: max-content;       
-    margin-left: auto;
-}
-
+    margin: -15px 23px 0px 0px;
+      padding: 15px;
+      text-align: right;
+      display: inline-block;
+      vertical-align: top;
+    }
     .charges-breakdown p {
       margin: 5px 0;
-      font-size: 12px;
+      font-size: 14px;
       color: #333;
+      line-height: 1.3;
     }
+    
+    /* Container to hold both elements */
+    .footer-container {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: -19px;
+    }
+}
+
     .charges-breakdown p:first-child {
-      font-weight: bold;
+      font-weight: bold !important;
       color: #2c3e50;
-      font-size: 12px;
+      font-size: 14px;
     }
   </style>
 </head>
@@ -1580,12 +1623,12 @@ async function handlePrint(reservationId, printType) {
         return `<h3 style="
               text-align: center;
               margin: 0;"> ${guestName}'s Same Day Check-out Form <span style="font-size: 12px; color: #666;">(${reservationId})</span></h3>
-              <p style="text-align: center; font-family: monospace">Actual Check-out Date / Time: ${actualCheckOutTime}</p>`;
+              <p style="text-align: center; font-family: monospace; margin:0px 0px -16px 0px !important">Actual Check-out Date / Time: ${actualCheckOutTime}</p>`;
       } else {
         return `<h3 style="
               text-align: center;
               margin: 0;"> ${guestName}'s Check-out Form <span style="font-size: 12px; color: #666;">(${reservationId})</span></h3>
-              <p style="text-align: center; font-family: monospace">Actual Check-out Date / Time: ${actualCheckOutTime}</p>`;
+              <p style="text-align: center; font-family: monospace; margin:0px 0px -16px 0px !important">Actual Check-out Date / Time: ${actualCheckOutTime}</p>`;
       }
     })()}
       
@@ -1672,7 +1715,7 @@ async function handlePrint(reservationId, printType) {
   }
 </style>
 
-    <p style="font-size: 17px; text-align: center;">
+    <p style="font-size: 17px; text-align: center; margin-top: -15px;">
       I have found all of my belongings and have taken them with me. <br>
        I understand that the Apartment management/host is not responsible for any valuables that are left behind.
     </p>
@@ -1687,119 +1730,146 @@ async function handlePrint(reservationId, printType) {
         <p>Guest Signature</p>
       </div>
     </div>
-
-    <div class="footer">
-      <p>📞 0300-0454711</p>
-      <p>📍 30-A, Block L, Gulberg 3, Lahore</p>
-    </div>
-    ${
-      allTotalCharges > 0
-        ? `<div class="charges-breakdown">
-                <p>*Charges Breakdown:</p>
-                ${
-                  financeFields.baseRate > 0
-                    ? `<p>• Base Rate: ${financeFields.baseRate.toFixed(2)}</p>`
-                    : ""
-                }
-                ${
-                  financeFields.cleaningFeeValue > 0
-                    ? `<p>• Cleaning Fee: ${financeFields.cleaningFeeValue.toFixed(
-                        2
-                      )}</p>`
-                    : ""
-                }
-                ${
-                  financeFields.additionalCleaningFee > 0
-                    ? `<p>• Additional Cleaning Fee: ${financeFields.additionalCleaningFee.toFixed(
-                        2
-                      )}</p>`
-                    : ""
-                }
-                ${
-                  financeFields.midstayCleaningFee > 0
-                    ? `<p>• Midstay Cleaning Fee: ${financeFields.midstayCleaningFee.toFixed(
-                        2
-                      )}</p>`
-                    : ""
-                }
-                ${
-                  financeFields.otherFees > 0
-                    ? `<p>• Other Fees: ${financeFields.otherFees.toFixed(
-                        2
-                      )}</p>`
-                    : ""
-                }
-                ${
-                  financeFields.salesTax > 0
-                    ? `<p>• Sales Tax: ${financeFields.salesTax.toFixed(2)}</p>`
-                    : ""
-                }
-                ${
-                  financeFields.earlyCheckinFee > 0
-                    ? `<p>• Early Check-in Fee: ${financeFields.earlyCheckinFee.toFixed(
-                        2
-                      )}</p>`
-                    : ""
-                }
-                ${
-                  financeFields.bedLinenFee > 0
-                    ? `<p>• Bed Linen Fee: ${financeFields.bedLinenFee.toFixed(
-                        2
-                      )}</p>`
-                    : ""
-                }
-                ${
-                  financeFields.extraBedsFee > 0
-                    ? `<p>• Extra Beds Fee: ${financeFields.extraBedsFee.toFixed(
-                        2
-                      )}</p>`
-                    : ""
-                }
-                ${
-                  financeFields.lateCheckoutFee > 0
-                    ? `<p>• Late Checkout Fee: ${financeFields.lateCheckoutFee.toFixed(
-                        2
-                      )}</p>`
-                    : ""
-                }
-                ${
-                  financeFields.damageDeposit > 0
-                    ? `<p>• Damage Deposit: ${financeFields.damageDeposit.toFixed(
-                        2
-                      )}</p>`
-                    : ""
-                }
-                ${
-                  financeFields.parkingFee > 0
-                    ? `<p>• Parking Fee: ${financeFields.parkingFee.toFixed(
-                        2
-                      )}</p>`
-                    : ""
-                }
-                ${
-                  financeFields.serviceFee > 0
-                    ? `<p>• Service Fee: ${financeFields.serviceFee.toFixed(
-                        2
-                      )}</p>`
-                    : ""
-                }
-                ${
-                  financeFields.towelChangeFee > 0
-                    ? `<p>• Towel Change Fee: ${financeFields.towelChangeFee.toFixed(
-                        2
-                      )}</p>`
-                    : ""
-                }
-                ${
-                  damageCharges > 0
-                    ? `<p>• Damage Deposit: ${damageCharges}</p>`
-                    : ""
-                }
-              </div>`
-        : ""
-    }
+<div class="footer-container">
+  <div class="footer">
+    <p>📞 0300-0454711</p>
+    <p>📍 30-A, Block L, Gulberg 3, Lahore</p>
   </div>
+
+  ${
+    allTotalCharges > 0
+      ? `
+    <div class="charges-breakdown">
+      <p><strong>*Charges Breakdown:</strong></p>
+      ${
+        financeFields.baseRate > 0
+          ? `<p>• Base Rate: ${financeFields.baseRate.toFixed(2)}</p>`
+          : ""
+      }
+      ${
+        financeFields.cleaningFeeValue > 0
+          ? `<p>• Cleaning Fee: ${financeFields.cleaningFeeValue.toFixed(
+              2
+            )}</p>`
+          : ""
+      }
+      ${
+        financeFields.additionalCleaningFee > 0
+          ? `<p>• Additional Cleaning Fee: ${financeFields.additionalCleaningFee.toFixed(
+              2
+            )}</p>`
+          : ""
+      }
+      ${
+        financeFields.midstayCleaningFee > 0
+          ? `<p>• Midstay Cleaning Fee: ${financeFields.midstayCleaningFee.toFixed(
+              2
+            )}</p>`
+          : ""
+      }
+      ${
+        financeFields.otherFees > 0
+          ? `<p>• Other Fees: ${financeFields.otherFees.toFixed(2)}</p>`
+          : ""
+      }
+      ${
+        financeFields.salesTax > 0
+          ? `<p>• Sales Tax: ${financeFields.salesTax.toFixed(2)}</p>`
+          : ""
+      }
+      ${
+        financeFields.earlyCheckinFee > 0
+          ? `<p>• Early Check-in Fee: ${financeFields.earlyCheckinFee.toFixed(
+              2
+            )}</p>`
+          : ""
+      }
+      ${
+        financeFields.bedLinenFee > 0
+          ? `<p>• Bed Linen Fee: ${financeFields.bedLinenFee.toFixed(2)}</p>`
+          : ""
+      }
+      ${
+        financeFields.extraBedsFee > 0
+          ? `<p>• Extra Beds Fee: ${financeFields.extraBedsFee.toFixed(2)}</p>`
+          : ""
+      }
+      ${
+        financeFields.lateCheckoutFee > 0
+          ? `<p>• Late Checkout Fee: ${financeFields.lateCheckoutFee.toFixed(
+              2
+            )}</p>`
+          : ""
+      }
+      ${
+        financeFields.damageDeposit > 0
+          ? `<p>• Damage Deposit: ${financeFields.damageDeposit.toFixed(2)}</p>`
+          : ""
+      }
+      ${
+        financeFields.parkingFee > 0
+          ? `<p>• Parking Fee: ${financeFields.parkingFee.toFixed(2)}</p>`
+          : ""
+      }
+      ${
+        financeFields.serviceFee > 0
+          ? `<p>• Service Fee: ${financeFields.serviceFee.toFixed(2)}</p>`
+          : ""
+      }
+      ${
+        financeFields.towelChangeFee > 0
+          ? `<p>• Towel Change Fee: ${financeFields.towelChangeFee.toFixed(
+              2
+            )}</p>`
+          : ""
+      }
+      ${damageCharges > 0 ? `<p>• Damage Deposit: ${damageCharges}</p>` : ""}
+    </div>
+    `
+      : ""
+  }
+</div>
+<div>
+<span style="margin-left: -19px;">✂----------------------------------------------------------------------------------------------------------
+</span>
+</div>
+<div>
+<div>
+<div style="margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
+  <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+    <div style="flex: 1;">
+      <p style="margin: 5px 0;"><strong>Guest Name:</strong> ${
+        guestName || "N/A"
+      }</p>
+    </div>
+    <div style="flex: 1;">
+      <p style="margin: 5px 0;"><strong>Vehicle Number:</strong> ${
+        vehicleNumber || "N/A"
+      }</p>
+    </div>
+  </div>
+  <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+    <div style="flex: 1;">
+      <p style="margin: 5px 0;"><strong>Departure Date:</strong> ${
+        departure || "N/A"
+      }</p>
+    </div>
+    <div style="flex: 1;">
+      <p style="margin: 5px 0;"><strong>Apartment:</strong> ${listingMapId || "N/A"}</p>
+    </div>
+  </div>
+  
+    </div>
+</div>
+<p style="text-align: center; margin: -2px 0px -6px 0px;">Thank you for staying with BooknRent, Good Bye!</p>
+</div>
+
   <script>
+  // Add jspdf CDN
+  const script = document.createElement('script');
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+  document.head.appendChild(script);
+
   async function downloadForm() {
     const formElement = document.querySelector('.form');
     const canvas = await html2canvas(formElement, {
@@ -1807,11 +1877,23 @@ async function handlePrint(reservationId, printType) {
       logging: false,
       useCORS: true
     });
+
+    // Create PDF
+    const pdf = new jspdf.jsPDF({
+      orientation: 'portrait',
+      unit: 'px',
+      format: 'a4'
+    });
+
+    // Add canvas as image to PDF
+    const imgData = canvas.toDataURL('image/png');
+    const imgWidth = pdf.internal.pageSize.getWidth();
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
     
-    const link = document.createElement('a');
-    link.download = \`${guestName}'s Checkout-form ${reservationId}.png\`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+
+    // Save PDF
+    pdf.save(\`${guestName}'s Checkout-form ${reservationId}.pdf\`);
   }
 </script>
 </body>
