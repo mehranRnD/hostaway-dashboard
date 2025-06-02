@@ -1866,11 +1866,6 @@ async function handlePrint(reservationId, printType) {
 </div>
 
   <script>
-  // Add jspdf CDN
-  const script = document.createElement('script');
-  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-  document.head.appendChild(script);
-
   async function downloadForm() {
     const formElement = document.querySelector('.form');
     const canvas = await html2canvas(formElement, {
@@ -1878,23 +1873,11 @@ async function handlePrint(reservationId, printType) {
       logging: false,
       useCORS: true
     });
-
-    // Create PDF
-    const pdf = new jspdf.jsPDF({
-      orientation: 'portrait',
-      unit: 'px',
-      format: 'a4'
-    });
-
-    // Add canvas as image to PDF
-    const imgData = canvas.toDataURL('image/png');
-    const imgWidth = pdf.internal.pageSize.getWidth();
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
     
-    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-
-    // Save PDF
-    pdf.save(\`${guestName}'s Checkout-form ${reservationId}.pdf\`);
+    const link = document.createElement('a');
+    link.download = \`${guestName}'s Checkout-form ${reservationId}.png\`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
   }
 </script>
 </body>
