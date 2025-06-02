@@ -937,7 +937,7 @@ async function handlePrint(reservationId, printType) {
   const departure = reservation.departureDate || "";
   const checkOutTime = reservation.checkOutTime || "";
   let vehicleNumber = reservation.vehicleNumber || "";
-const arrival = reservation.arrivalDate || "";
+  const arrival = reservation.arrivalDate || "";
 
   // Create print content based on type
   let printContent;
@@ -948,7 +948,6 @@ const arrival = reservation.arrivalDate || "";
     let cnic = "";
     let address = "";
     let vehicleNumber = "";
-    let earlyCheckIn = "";
     try {
       const response = await fetch(reservationUrl, {
         method: "GET",
@@ -1025,19 +1024,6 @@ const arrival = reservation.arrivalDate || "";
           console.log("Vehicle Number not found.");
         }
 
-        // Get Early Check-in
-        const earlyCheckInField = customFields.find(
-          (item) =>
-            item.customFieldId === 75222 &&
-            item.customField?.name === "Early Checkin Charges"
-        );
-
-        if (earlyCheckInField) {
-          earlyCheckIn = earlyCheckInField.value;
-          console.log("Early Check-in:", earlyCheckIn);
-        } else {
-          console.log("Early Check-in not found.");
-        }
         // Get Damage Charges
         const damageChargesField = customFields.find(
           (item) =>
@@ -1069,8 +1055,18 @@ const arrival = reservation.arrivalDate || "";
       console.error("Error fetching reservation data:", error);
     }
     // Fetch finance fields
-    const { securityDepositFee } = await getFinanceFields(reservationId);
+    const { securityDepositFee, financeFields } = await getFinanceFields(
+      reservationId
+    );
 
+    // Get Early Check-in from the financeFields object
+    const earlyCheckIn = financeFields.earlyCheckinFee;
+
+    if (earlyCheckIn) {
+      console.log("Early Check-in:", earlyCheckIn);
+    } else {
+      console.log("Early Check-in not found or is 0.");
+    }
     const listingMapId =
       listingsMap.get(reservation.listingMapId) || reservation.listingMapId;
 
@@ -1134,7 +1130,9 @@ const arrival = reservation.arrivalDate || "";
     }
 
     // Calculate the final price after subtracting 5000
-    const finalPrice = convertedTotalPrice ? convertedTotalPrice - 5000 : 0;
+    const finalPrice = convertedTotalPrice
+      ? convertedTotalPrice - securityDepositFee
+      : 0;
 
     // Format the price with Rs. prefix
     const formattedPrice = convertedTotalPrice
@@ -1143,6 +1141,7 @@ const arrival = reservation.arrivalDate || "";
 
     const duration = reservation.nights || 1;
     const pricePerNight = (finalPrice / duration).toFixed(2);
+    const totalPrice = reservation.totalPrice;
 
     // Get dates
     const arrival = new Date(reservation.arrivalDate).toLocaleDateString();
@@ -1281,7 +1280,7 @@ const arrival = reservation.arrivalDate || "";
                 <div class="form-field"><label>Email:</label><input style="flex: 1; background: transparent; border: none; border-bottom: 1px solid #000; font-size: 13px;" value="${email}" readonly /></div>
                 <div class="form-field"><label>Contact:</label><input value="${contact}" readonly /></div>
                 <div class="form-field"><label>Total Nights:</label><input value="${duration}" readonly /></div>
-                <div class="form-field"><label>Total Amount:</label><input value="${formattedPrice}" readonly /></div>
+                <div class="form-field"><label>Total Amount:</label><input value="${totalPrice}" readonly /></div>
                 <div class="form-field"><label>Early Check-in:</label><input value="${earlyCheckIn}" readonly /></div>
                 <div class="form-field"><label>Price/Night:</label><input value="${pricePerNight}" readonly /></div>
                 <div class="form-field"><label>Channel <br> ID:</label><input value="${channelName}" readonly /></div>
@@ -1855,7 +1854,9 @@ const arrival = reservation.arrivalDate || "";
       }</p>
     </div>
     <div style="flex: 1;">
-      <p style="margin: 5px 0;"><strong>Apartment:</strong> ${listingMapId || "N/A"}</p>
+      <p style="margin: 5px 0;"><strong>Apartment:</strong> ${
+        listingMapId || "N/A"
+      }</p>
     </div>
   </div>
   
