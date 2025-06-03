@@ -948,6 +948,7 @@ async function handlePrint(reservationId, printType) {
     let cnic = "";
     let address = "";
     let vehicleNumber = "";
+    let pricePerNight = "";
     try {
       const response = await fetch(reservationUrl, {
         method: "GET",
@@ -1035,6 +1036,19 @@ async function handlePrint(reservationId, printType) {
           console.log("Damage Charges:", damageChargesField.value);
         } else {
           console.log("Damage Charges not found.");
+        }
+        // Get PricePerNight
+        const pricePerNightField = customFields.find(
+          (item) =>
+            item.customFieldId === 63430 &&
+            item.customField?.name === "Price per night"
+        );
+
+        if (pricePerNightField) {
+          pricePerNight = pricePerNightField.value;
+          console.log("PricePerNight:", pricePerNight);
+        } else {
+          console.log("PricePerNight not found.");
         }
         // Get Same Day Check-out
         const sameDayCheckoutField = customFields.find(
@@ -1140,7 +1154,7 @@ async function handlePrint(reservationId, printType) {
       : "N/A";
 
     const duration = reservation.nights || 1;
-    const pricePerNight = (finalPrice / duration).toFixed(2);
+    // const pricePerNight = (finalPrice / duration).toFixed(2);
     const totalPrice = reservation.totalPrice;
 
     // Get dates

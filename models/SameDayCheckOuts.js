@@ -56,7 +56,6 @@ const sameDayCheckOutSchema = new mongoose.Schema(
 );
 
 // Index for faster querying
-sameDayCheckOutSchema.index({ reservationId: 1 }, { unique: true });
 sameDayCheckOutSchema.index({ checkOutTime: -1 });
 
 module.exports = mongoose.model("SameDayCheckOut", sameDayCheckOutSchema);
