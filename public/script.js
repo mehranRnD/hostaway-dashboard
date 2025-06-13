@@ -682,22 +682,22 @@ function handleCheckIn(reservation) {
         actionsDiv.appendChild(sameDayCheckOutBtn);
       }
     }
-// Create Early Check-Out button
-const earlyCheckOutBtn = document.createElement("button");
-earlyCheckOutBtn.className = "early-checkout-btn";
-earlyCheckOutBtn.textContent = "Early Check-Out";
+    // Create Early Check-Out button
+    const earlyCheckOutBtn = document.createElement("button");
+    earlyCheckOutBtn.className = "early-checkout-btn";
+    earlyCheckOutBtn.textContent = "Early Check-Out";
 
-// Add to actions container
-if (actionsDiv) {
-  // Add the new button after the Same Day Check-Out button
-  actionsDiv.appendChild(earlyCheckOutBtn);
-}
+    // Add to actions container
+    if (actionsDiv) {
+      // Add the new button after the Same Day Check-Out button
+      actionsDiv.appendChild(earlyCheckOutBtn);
+    }
 
-// Add event listener for the Early Check-Out button
-earlyCheckOutBtn.addEventListener("click", () => {
-  // You'll need to implement the handleEarlyCheckOut function
-  handleEarlyCheckOut(reservation);
-});
+    // Add event listener for the Early Check-Out button
+    earlyCheckOutBtn.addEventListener("click", () => {
+      // You'll need to implement the handleEarlyCheckOut function
+      handleEarlyCheckOut(reservation);
+    });
     // Move card to Actual Check-In section
     actualCheckInsList.appendChild(reservationCard);
 
@@ -1877,14 +1877,15 @@ async function handlePrint(reservationId, printType) {
     </div>
   </div>
   <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-    <div style="flex: 1;">
-      <p style="margin: 5px 0;"><strong>Departure Date:</strong> ${
-        departure || "N/A"
-      }</p>
-    </div>
+    
     <div style="flex: 1;">
       <p style="margin: 5px 0;"><strong>Apartment:</strong> ${
         listingMapId || "N/A"
+      }</p>
+    </div>
+    <div style="flex: 1;">
+      <p style="margin: 5px 0;"><strong>Departure Date and Time:</strong> ${
+        actualCheckOutTime || "N/A"
       }</p>
     </div>
   </div>
