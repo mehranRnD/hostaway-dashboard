@@ -1578,5 +1578,20 @@ body {
   border-top: 1px dashed #eee;
 }
 
+.early-checkout-btn {
+  background-color: #9c27b0; /* Purple color */
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-left: 8px;
+}
 
+.early-checkout-btn:hover {
+  background-color: #7b1fa2; /* Darker purple on hover */
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
 
