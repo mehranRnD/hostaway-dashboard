@@ -1586,7 +1586,6 @@ body {
   border-radius: 4px;
   cursor: pointer;
   transition: background 0.2s;
-  margin-left: 8px;
 }
 
 .early-checkout-btn:hover {

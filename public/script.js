@@ -52,6 +52,7 @@ const listings = [
   },
   { listingId: 395345, listingName: "9F-83 (2B)", listingType: "2 Bed Room" },
   { listingId: 400763, listingName: "4F-37 (1B)", listingType: "1 Bed Room" },
+  { listingId: 400779, listingName: "8f-77 (2B)", listingType: "2 Bed Rooms" },
 ];
 
 // Maps listingId to listing name
@@ -485,22 +486,26 @@ function createReservationCard(reservation, sectionType) {
           : ""
       }
       ${
-        sectionType === "actualCheckIns" || sectionType === "actualCheckOuts"
+        sectionType === "actualCheckIns"
           ? `
-        <button class="print-btn" data-res-id="${
-          reservation.hostawayReservationId
-        }" data-type="${
-              sectionType === "actualCheckIns" ? "checkin" : "checkout"
-            }"> 
-          Print ${sectionType === "actualCheckIns" ? "Check-in" : "Check-out"}
+        <button class="print-btn" data-res-id="${reservation.hostawayReservationId}" data-type="checkin">
+          Print Check-in
         </button>
-        ${
-          sectionType === "actualCheckIns"
-            ? `
-        ${sameDayBtn}
-        `
-            : ""
-        }
+        <button class="same-day-checkout-btn" data-res-id="${reservation.hostawayReservationId}">
+          Same Day Check-Out
+        </button>
+        <button class="early-checkout-btn" data-res-id="${reservation.hostawayReservationId}">
+          Early Check Out
+        </button>
+      `
+          : ""
+      }
+      ${
+        sectionType === "actualCheckOuts"
+          ? `
+        <button class="print-btn" data-res-id="${reservation.hostawayReservationId}" data-type="checkout">
+          Print Check-out
+        </button>
       `
           : ""
       }
@@ -513,6 +518,7 @@ function createReservationCard(reservation, sectionType) {
     const checkOutBtn = card.querySelector(".check-out-btn");
     const printBtn = card.querySelector(".print-btn");
     const sameDayCheckoutBtn = card.querySelector(".same-day-checkout-btn");
+    const earlyCheckoutBtn = card.querySelector(".early-checkout-btn");
 
     if (checkInBtn) {
       checkInBtn.addEventListener("click", () => handleCheckIn(reservation));
@@ -531,9 +537,228 @@ function createReservationCard(reservation, sectionType) {
         handleSameDayCheckOut(reservation)
       );
     }
+    if (earlyCheckoutBtn) {
+      // Check stored early check-out status
+      const earlyCheckOutStatus = JSON.parse(
+        localStorage.getItem(`earlyCheckOut_${reservationId}`) || "{}"
+      );
+      // Set initial button state
+      if (
+        earlyCheckOutStatus.allowed === false ||
+        earlyCheckOutStatus.value === "No"
+      ) {
+        earlyCheckoutBtn.disabled = true;
+        earlyCheckoutBtn.style.opacity = "0.5";
+        earlyCheckoutBtn.title =
+          "Early check-out not allowed for this reservation";
+      } else if (earlyCheckOutStatus.value === "Yes") {
+        earlyCheckoutBtn.disabled = false;
+        earlyCheckoutBtn.style.opacity = "1";
+        earlyCheckoutBtn.title = "";
+      }
+      // Add click event listener
+      earlyCheckoutBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        handleEarlyCheckOut(reservation);
+      });
+    }
   }, 0);
 
   return card;
+}
+
+// Handle Early Check Out
+function handleEarlyCheckOut(reservation) {
+  const reservationId = reservation.hostawayReservationId;
+
+  // Fetch reservation details first
+  const apiUrl = `https://api.hostaway.com/v1/reservations/${reservationId}`;
+  fetch(apiUrl, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${API_TOKEN}`,
+    },
+  })
+    .then((response) => response.json())
+    .then((reservationData) => {
+      const customFields = reservationData.result.customFieldValues;
+
+      // Find the specific custom field with ID 78257 (Early Check Out)
+      const earlyCheckOutField = customFields.find(
+        (field) => field.customFieldId === 78257
+      );
+
+      if (earlyCheckOutField) {
+        console.log("Early Check Out Value:", earlyCheckOutField.value);
+
+        // Store the early check-out status in localStorage
+        const isAllowed = earlyCheckOutField.value === "Yes";
+        localStorage.setItem(
+          `earlyCheckOut_${reservationId}`,
+          JSON.stringify({
+            allowed: isAllowed,
+            value: earlyCheckOutField.value,
+          })
+        );
+
+        // Disable button if value is not "Yes"
+        const earlyCheckOutBtn = document.querySelector(
+          `.early-checkout-btn[data-res-id="${reservationId}"]`
+        );
+        if (earlyCheckOutBtn) {
+          if (!isAllowed) {
+            earlyCheckOutBtn.disabled = true;
+            earlyCheckOutBtn.style.opacity = "0.5";
+            earlyCheckOutBtn.title =
+              "Early check-out not allowed for this reservation";
+            return;
+          } else {
+            earlyCheckOutBtn.disabled = false;
+            earlyCheckOutBtn.style.opacity = "1";
+            earlyCheckOutBtn.title = "";
+          }
+        }
+      } else {
+        console.log("Early Check-Out Field not found.");
+        // Store unknown status and disable the button
+        localStorage.setItem(
+          `earlyCheckOut_${reservationId}`,
+          JSON.stringify({
+            allowed: false,
+            value: "unknown",
+          })
+        );
+        const earlyCheckOutBtn = document.querySelector(
+          `.early-checkout-btn[data-res-id="${reservationId}"]`
+        );
+        if (earlyCheckOutBtn) {
+          earlyCheckOutBtn.disabled = true;
+          earlyCheckOutBtn.style.opacity = "0.5";
+          earlyCheckOutBtn.title = "Early check-out status unknown";
+        }
+        return;
+      }
+
+      // Proceed with check-out if allowed
+      const now = new Date();
+      const formattedDateTime = now.toLocaleString("en-US", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+
+      let guestName = reservation.guestName;
+      let apartmentName =
+        listingsMap.get(reservation.listingMapId) || reservation.listingMapId;
+
+      // Save to local storage
+      const existingCheckOuts = JSON.parse(
+        localStorage.getItem("actualCheckOuts") || "{}"
+      );
+      existingCheckOuts[reservationId] = formattedDateTime;
+      localStorage.setItem(
+        "actualCheckOuts",
+        JSON.stringify(existingCheckOuts)
+      );
+
+      // Update Hostaway
+      const updateUrl = `https://api.hostaway.com/v1/reservations/${reservationId}?forceOverbooking=1`;
+      fetch(updateUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${API_TOKEN}`,
+        },
+        body: JSON.stringify({
+          status: "checked_out",
+          customFieldValues: [
+            { customFieldId: 76282, value: formattedDateTime }, // Actual Check-out
+          ],
+        }),
+      })
+        .then(() => {
+          // Save early check-out to database
+          return fetch("/api/early-check-outs", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              reservationId: reservation.hostawayReservationId,
+              guestName: guestName || "Unknown Guest",
+              listingName: apartmentName || "Unknown Listing",
+              arrivalDate: reservation.arrivalDate || "",
+              departureDate: reservation.departureDate || "",
+              nights: reservation.nights || 0,
+              listingMapId: reservation.listingMapId || "unknown",
+              checkOutType: "early",
+            }),
+          });
+        })
+        .then(() => {
+          // Move to Actual Check-Out section
+          const reservationCard = document.querySelector(
+            `.reservation-card[data-res-id="${reservationId}"]`
+          );
+
+          if (reservationCard) {
+            // Remove Early Check-Out button
+            const earlyCheckOutBtn = reservationCard.querySelector(
+              ".early-checkout-btn"
+            );
+            if (earlyCheckOutBtn) {
+              earlyCheckOutBtn.remove();
+            }
+
+            // Remove Same Day Check-Out button if it exists
+            const sameDayBtn = reservationCard.querySelector(
+              ".same-day-checkout-btn"
+            );
+            if (sameDayBtn) {
+              sameDayBtn.remove();
+            }
+
+            // Update the Print button to be a Print Check-out button
+            const printBtn = reservationCard.querySelector(".print-btn");
+            if (printBtn) {
+              printBtn.setAttribute("data-type", "checkout");
+              printBtn.textContent = "Print Check-out";
+            }
+
+            // Move card to Actual Check-Out section
+            const actualCheckOutsList = document.querySelector(
+              "#actualCheckOutsList"
+            );
+            if (actualCheckOutsList) {
+              actualCheckOutsList.appendChild(reservationCard);
+            }
+
+            // Update the section type label if it exists
+            const sectionTypeElement =
+              reservationCard.querySelector(".section-type");
+            if (sectionTypeElement) {
+              sectionTypeElement.textContent = "Actual Check-out (Early)";
+            }
+
+            updateUI();
+            fetchReservations();
+          }
+        })
+        .catch((error) => {
+          console.error("Error during early check-out:", error);
+          alert(
+            "An error occurred while processing early check-out. Please try again."
+          );
+        });
+    })
+    .catch((error) => {
+      console.error("Error fetching reservation details:", error);
+      alert("Failed to fetch reservation details. Please try again.");
+    });
 }
 
 function handleCheckIn(reservation) {
@@ -660,49 +885,58 @@ function handleCheckIn(reservation) {
   }
 
   if (reservationCard) {
-    // Update the Check-In button to a Print button
-    const checkInBtn = reservationCard.querySelector(".check-in-btn");
-    if (checkInBtn) {
-      checkInBtn.textContent = "Print Check-in";
-      checkInBtn.classList.remove("check-in-btn");
-      checkInBtn.classList.add("print-btn");
-      checkInBtn.setAttribute("data-type", "checkin");
-      checkInBtn.setAttribute("data-res-id", reservation.hostawayReservationId);
+    // Get or create actions container
+    let actionsDiv = reservationCard.querySelector(".reservation-actions");
+    if (!actionsDiv) {
+      actionsDiv = document.createElement("div");
+      actionsDiv.className = "reservation-actions";
+      reservationCard.appendChild(actionsDiv);
     }
+
+    // Clear existing buttons to avoid duplicates
+    actionsDiv.innerHTML = "";
+
+    // Create Print Check-in button
+    const printBtn = document.createElement("button");
+    printBtn.className = "print-btn";
+    printBtn.textContent = "Print Check-in";
+    printBtn.setAttribute("data-type", "checkin");
+    printBtn.setAttribute("data-res-id", reservation.hostawayReservationId);
+    printBtn.addEventListener("click", () => {
+      handlePrint(reservation.hostawayReservationId, "checkin");
+    });
+    actionsDiv.appendChild(printBtn);
 
     // Create Same Day Check-Out button
     const sameDayCheckOutBtn = document.createElement("button");
     sameDayCheckOutBtn.className = "same-day-checkout-btn";
-    sameDayCheckOutBtn.textContent = "Same Day Check-Out?";
+    sameDayCheckOutBtn.textContent = "Same Day Check-Out";
+    sameDayCheckOutBtn.setAttribute(
+      "data-res-id",
+      reservation.hostawayReservationId
+    );
+    sameDayCheckOutBtn.addEventListener("click", () => {
+      handleSameDayCheckOut(reservation);
+    });
+    actionsDiv.appendChild(sameDayCheckOutBtn);
 
-    // Add to actions container
-    const actionsDiv = reservationCard.querySelector(".reservation-actions");
-    if (actionsDiv) {
-      // Avoid duplicating button on re-check-ins
-      if (!actionsDiv.querySelector(".same-day-checkout-btn")) {
-        actionsDiv.appendChild(sameDayCheckOutBtn);
-      }
-    }
     // Create Early Check-Out button
     const earlyCheckOutBtn = document.createElement("button");
     earlyCheckOutBtn.className = "early-checkout-btn";
     earlyCheckOutBtn.textContent = "Early Check-Out";
-
-    // Add to actions container
-    if (actionsDiv) {
-      // Add the new button after the Same Day Check-Out button
-      actionsDiv.appendChild(earlyCheckOutBtn);
-    }
-
-    // Add event listener for the Early Check-Out button
+    earlyCheckOutBtn.setAttribute(
+      "data-res-id",
+      reservation.hostawayReservationId
+    );
     earlyCheckOutBtn.addEventListener("click", () => {
-      // You'll need to implement the handleEarlyCheckOut function
       handleEarlyCheckOut(reservation);
     });
+    actionsDiv.appendChild(earlyCheckOutBtn);
+
     // Move card to Actual Check-In section
     actualCheckInsList.appendChild(reservationCard);
 
-    // Optional: update label if you use it somewhere
+    // Update the section type label if it exists
     const sectionTypeElement = reservationCard.querySelector(".section-type");
     if (sectionTypeElement) {
       sectionTypeElement.textContent = "Actual Check-in";
@@ -1642,26 +1876,45 @@ async function handlePrint(reservationId, printType) {
       <img src="img/booknrent-logo.png" alt="Booknrent Logo">
     </div>
     <div class="heading-text">
-    ${(() => {
-      const sameDayData = JSON.parse(
-        localStorage.getItem(`sameDayCheckOut_${reservationId}`) || "{}"
-      );
-      const isSameDayCheckout = sameDayData && sameDayData.value === "Yes";
+  ${(() => {
+    const sameDayData = JSON.parse(
+      localStorage.getItem(`sameDayCheckOut_${reservationId}`) || "{}"
+    );
+    const earlyCheckOutData = JSON.parse(
+      localStorage.getItem(`earlyCheckOut_${reservationId}`) || "{}"
+    );
+    const isSameDayCheckout = sameDayData && sameDayData.value === "Yes";
+    const isEarlyCheckOut =
+      earlyCheckOutData && earlyCheckOutData.allowed === true;
 
-      if (isSameDayCheckout) {
-        return `<h3 style="
-              text-align: center;
-              margin: 0;"> ${guestName}'s Same Day Check-out Form <span style="font-size: 12px; color: #666;">(${reservationId})</span></h3>
-              <p style="text-align: center; font-family: monospace; margin:0px 0px -16px 0px !important">Actual Check-out Date / Time: ${actualCheckOutTime}</p>`;
-      } else {
-        return `<h3 style="
-              text-align: center;
-              margin: 0;"> ${guestName}'s Check-out Form <span style="font-size: 12px; color: #666;">(${reservationId})</span></h3>
-              <p style="text-align: center; font-family: monospace; margin:0px 0px -16px 0px !important">Actual Check-out Date / Time: ${actualCheckOutTime}</p>`;
-      }
-    })()}
-      
-    </div>
+    if (isSameDayCheckout) {
+      return `<h3 style="text-align: center; margin: 0;">
+                ${guestName}'s Same Day Check-out Form 
+                <span style="font-size: 12px; color: #666;">(${reservationId})</span>
+              </h3>
+              <p style="text-align: center; font-family: monospace; margin:0px 0px -16px 0px !important">
+                Actual Check-out Date / Time: ${actualCheckOutTime}
+              </p>`;
+    } else if (isEarlyCheckOut) {
+      return `<h3 style="text-align: center; margin: 0;">
+                ${guestName}'s Early Check-out Form 
+                <span style="font-size: 12px; color: #666;">(${reservationId})</span>
+              </h3>
+              <p style="text-align: center; font-family: monospace; margin:0px 0px -16px 0px !important">
+                Actual Check-out Date / Time: ${actualCheckOutTime}
+              </p>`;
+    } else {
+      return `<h3 style="text-align: center; margin: 0;">
+                ${guestName}'s Check-out Form 
+                <span style="font-size: 12px; color: #666;">(${reservationId})</span>
+              </h3>
+              <p style="text-align: center; font-family: monospace; margin:0px 0px -16px 0px !important">
+                Actual Check-out Date / Time: ${actualCheckOutTime}
+              </p>`;
+    }
+  })()}
+</div>
+
 
     <p>
       I, <strong>${guestName}</strong>, have checked out of the apartment <strong>${listingMapId}</strong> on <strong>${departure}</strong>. 
@@ -2592,14 +2845,54 @@ document.addEventListener("dateSelected", (e) => {
   fetchReservationsByDate(selectedDate);
 });
 
+async function fetchCheckInOutData() {
+  try {
+    // Fetch check-ins
+    const checkInsResponse = await fetch("/api/check-ins");
+    const checkInsData = await checkInsResponse.json();
+
+    if (checkInsData.success) {
+      console.log("Check-ins from database:", checkInsData.data);
+    }
+
+    // Fetch check-outs
+    const checkOutsResponse = await fetch("/api/check-outs");
+    const checkOutsData = await checkOutsResponse.json();
+
+    if (checkOutsData.success) {
+      console.log("Check-outs from database:", checkOutsData.data);
+    }
+    // Fetch same day check-outs
+    const sameDayCheckOutsResponse = await fetch("/api/same-day-check-outs");
+    const sameDayCheckOutsData = await sameDayCheckOutsResponse.json();
+
+    if (sameDayCheckOutsData.success) {
+      console.log(
+        "Same-day check-outs from database:",
+        sameDayCheckOutsData.data
+      );
+    }
+    return {
+      checkIns: checkInsData.data || [],
+      checkOuts: checkOutsData.data || [],
+      sameDayCheckOuts: sameDayCheckOutsData.data || [],
+    };
+  } catch (error) {
+    console.error("Error fetching check-in/out data:", error);
+    return { checkIns: [], checkOuts: [], sameDayCheckOuts: [] };
+  }
+}
+
 // Call this function when the page loads
 document.addEventListener("DOMContentLoaded", () => {
   const todayStr = new Date().toISOString().split("T")[0];
   fetchReservationsByDate(todayStr);
 
   // Fetch and log check-in/out data
+  fetchCheckInOutData();
 
   fetchAndDisplayTotalCheckIns(); // Add this line
+  fetchAndDisplayTotalCheckOuts(); // Add this line to load check-outs
 });
 
 function launchConfettiCelebration() {
