@@ -5,26 +5,7 @@ require("dotenv").config(); // Load environment variables
 const fetch = require("node-fetch");
 const mongoose = require("mongoose");
 
-// Debug logging
-console.log("Server starting...");
-console.log("NODE_ENV:", process.env.NODE_ENV);
-console.log("MongoDB URI:", process.env.MONGODB_URI ? "Set" : "Not set");
-console.log("API Token:", process.env.API_TOKEN ? "Set" : "Not set");
-
 const app = express();
-// Add error handling for unhandled promise rejections
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  // Application specific logging, throwing an error, or other logic here
-});
-
-// Add error handling for uncaught exceptions
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-  // Application specific logging, throwing an error, or other logic here
-  process.exit(1); // Mandatory (as per the Node.js docs)
-});
-
 const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 
@@ -39,41 +20,13 @@ app.use(express.json());
 
 // MongoDB connection
 mongoose
-    .connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    })
-    .then(() => {
-      console.log("MongoDB connected successfully");
-    })
-    .catch((err) => {
-      console.error("MongoDB connection error:", err);
-      process.exit(1);
-    });
-
-// Add this error handler after the mongoose.connect() code
-mongoose.connection.on("error", (err) => {
-  console.error("MongoDB connection error:", err);
-  process.exit(1);
-});
+  .connect(process.env.MONGODB_URI)
+  .then(() => console.log("MongoDB connected successfully ✔️"))
+  .catch((err) => console.error("MongoDB connection error:", err));
 
 // Serve static files from "public" folder
 app.use(express.static(path.join(__dirname, "public")));
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error("Unhandled error:", err);
-  res.status(500).json({ error: "Internal Server Error" });
-});
-
-app.get("/api/test", (req, res) => {
-  res.json({ message: "API is working!" });
-});
-
-// Handle all other routes by serving index.html
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
 
 // Helper function to format date
 const formatDate = (date) => {
@@ -414,6 +367,7 @@ app.get("/api/same-day-check-outs", async (req, res) => {
     });
   }
 });
+
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
