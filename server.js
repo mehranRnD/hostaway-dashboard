@@ -27,6 +27,10 @@ mongoose
 // Serve static files from "public" folder
 app.use(express.static(path.join(__dirname, "public")));
 
+app.get("/api/test", (req, res) => {
+  res.json({ message: "API is working!" });
+});
+
 // Handle all other routes by serving index.html
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
@@ -371,7 +375,6 @@ app.get("/api/same-day-check-outs", async (req, res) => {
     });
   }
 });
-
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
