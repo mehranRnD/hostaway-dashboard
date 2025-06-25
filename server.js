@@ -12,6 +12,19 @@ console.log("MongoDB URI:", process.env.MONGODB_URI ? "Set" : "Not set");
 console.log("API Token:", process.env.API_TOKEN ? "Set" : "Not set");
 
 const app = express();
+// Add error handling for unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  // Application specific logging, throwing an error, or other logic here
+});
+
+// Add error handling for uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  // Application specific logging, throwing an error, or other logic here
+  process.exit(1); // Mandatory (as per the Node.js docs)
+});
+
 const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 
@@ -26,11 +39,6 @@ app.use(express.json());
 
 // MongoDB connection
 mongoose
-  .connect(process.env.MONGODB_URI)
-  .then(() => console.log("MongoDB connected successfully ✔️"))
-  .catch((err) => console.error("MongoDB connection error:", err));
-
-  mongoose
     .connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
