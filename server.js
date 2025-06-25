@@ -27,6 +27,10 @@ mongoose
 // Serve static files from "public" folder
 app.use(express.static(path.join(__dirname, "public")));
 
+// Handle all other routes by serving index.html
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
 // Helper function to format date
 const formatDate = (date) => {
