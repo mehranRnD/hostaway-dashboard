@@ -53,6 +53,7 @@ const listings = [
   { listingId: 395345, listingName: "9F-83 (2B)", listingType: "2 Bed Room" },
   { listingId: 400763, listingName: "4F-37 (1B)", listingType: "1 Bed Room" },
   { listingId: 400779, listingName: "8f-77 (2B)", listingType: "2 Bed Rooms" },
+  { listingId: 400769, listingName: "9f-86 (2B)", listingType: "2 Bed Rooms" },
 ];
 
 // Maps listingId to listing name
