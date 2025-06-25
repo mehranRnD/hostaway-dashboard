@@ -5,6 +5,12 @@ require("dotenv").config(); // Load environment variables
 const fetch = require("node-fetch");
 const mongoose = require("mongoose");
 
+// Debug logging
+console.log("Server starting...");
+console.log("NODE_ENV:", process.env.NODE_ENV);
+console.log("MongoDB URI:", process.env.MONGODB_URI ? "Set" : "Not set");
+console.log("API Token:", process.env.API_TOKEN ? "Set" : "Not set");
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || "development";
@@ -24,8 +30,33 @@ mongoose
   .then(() => console.log("MongoDB connected successfully ✔️"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
+  mongoose
+    .connect(process.env.MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    })
+    .then(() => {
+      console.log("MongoDB connected successfully");
+    })
+    .catch((err) => {
+      console.error("MongoDB connection error:", err);
+      process.exit(1);
+    });
+
+// Add this error handler after the mongoose.connect() code
+mongoose.connection.on("error", (err) => {
+  console.error("MongoDB connection error:", err);
+  process.exit(1);
+});
+
 // Serve static files from "public" folder
 app.use(express.static(path.join(__dirname, "public")));
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err);
+  res.status(500).json({ error: "Internal Server Error" });
+});
 
 app.get("/api/test", (req, res) => {
   res.json({ message: "API is working!" });
