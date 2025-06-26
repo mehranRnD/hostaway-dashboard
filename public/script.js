@@ -1464,7 +1464,7 @@ async function handlePrint(reservationId, printType) {
             .form-field {
     display: flex;
     align-items: flex-start;
-    margin-bottom: 18px;
+    margin-bottom: 15px;
     font-size: 12px;
   }
 
@@ -1549,16 +1549,16 @@ async function handlePrint(reservationId, printType) {
             </div>
             <div class="form-container">
   <div class="left-section">
-    <div class="form-field"><label>Name:</label><input value="${guestName}" readonly /></div>
-    <div class="form-field"><label>CNIC:</label><input value="${cnic}" readonly /></div>
-    <div class="form-field"><label>Unit:</label><input value="${listingMapId}" readonly /></div>
-    <div class="form-field"><label>Type:</label><input value="${listingType}" readonly /></div>
-    <div class="form-field"><label>Contact:</label><input value="${contact}" readonly /></div>
-    <div class="form-field"><label>Total Nights:</label><input value="${duration}" readonly /></div>
-    <div class="form-field"><label>Total Amount:</label><input value="${totalPrice}" readonly /></div>
-    <div class="form-field"><label>Early Check-in:</label><input value="${earlyCheckIn}" readonly /></div>
-    <div class="form-field"><label>Price/Night:</label><input value="${pricePerNight}" readonly /></div>
-    <div class="form-field"><label>Channel ID:</label><input value="${channelName}" readonly /></div>
+    <div class="form-field"><label>Name:</label><div class="field-value">${guestName}</div></div>
+    <div class="form-field"><label>CNIC:</label><div class="field-value">${cnic}</div></div>
+    <div class="form-field"><label>Unit:</label><div class="field-value">${listingMapId}</div></div>
+    <div class="form-field"><label>Type:</label><div class="field-value">${listingType}</div></div>
+    <div class="form-field"><label>Contact:</label><div class="field-value">${contact}</div></div>
+    <div class="form-field"><label>Total Nights:</label><div class="field-value">${duration}</div></div>
+    <div class="form-field"><label>Total Amount:</label><div class="field-value">${totalPrice}</div></div>
+    <div class="form-field"><label>Early Check-in:</label><div class="field-value">${earlyCheckIn}</div></div>
+    <div class="form-field"><label>Price/Night:</label><div class="field-value">${pricePerNight}</div></div>
+    <div class="form-field"><label>Channel ID:</label><div class="field-value">${channelName}</div></div>
   </div>
 
   <div class="right-section">
