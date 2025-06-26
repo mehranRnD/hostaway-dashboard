@@ -27,7 +27,6 @@ mongoose
 // Serve static files from "public" folder
 app.use(express.static(path.join(__dirname, "public")));
 
-
 // Helper function to format date
 const formatDate = (date) => {
   return new Date(date).toLocaleString("en-US", {
@@ -367,7 +366,6 @@ app.get("/api/same-day-check-outs", async (req, res) => {
     });
   }
 });
-
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
