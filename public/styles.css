@@ -265,9 +265,9 @@ body {
   margin: 5px 0;
 }
 
-.reservation-card:hover {
+/* .reservation-card:hover {
   transform: translateY(-2px);
-}
+} */
 
 .check-in-btn,
 .check-out-btn,
@@ -1510,10 +1510,10 @@ body {
   color: #cc7a00;
 }
 
-.reservation-card:hover {
+/* .reservation-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
+} */
 
 .card-header {
   display: flex;
