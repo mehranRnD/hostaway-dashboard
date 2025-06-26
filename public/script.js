@@ -1462,19 +1462,41 @@ async function handlePrint(reservationId, printType) {
               flex: 1;
             }
             .form-field {
-              margin-bottom: 15px;
-            }
-            .form-field label {
-              display: inline-block;
-              width: 80px;
-              font-size: 12px;
-            }
-            .form-field input {
-              width: calc(100% - 90px);
-              background: transparent;
-              border: none;
-              border-bottom: 1px solid #000000;
-            }
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 18px;
+    font-size: 12px;
+  }
+
+  .form-field label {
+    width: 100px;
+    flex-shrink: 0;
+    font-weight: bold;
+  }
+
+  .form-field .field-value {
+  flex: 1;
+  border-bottom: 1px solid black;
+  padding-bottom: 2px;
+  word-break: break-word;
+  white-space: pre-wrap; /* Ensures wrapping and respects line breaks */
+  font-size: 11.5px;
+  min-height: 16px;
+  font-family: inherit;
+}
+
+  /* To style readonly input fields consistently */
+  .form-field input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #000000;
+  font-size: 11.5px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
             .address-field input {
               width: calc(100% - 90px);
             }
@@ -1526,31 +1548,32 @@ async function handlePrint(reservationId, printType) {
               <p style="text-align: center; font-family: monospace">Actual Check-in Date / Time: ${actualCheckInTime}</p>
             </div>
             <div class="form-container">
-              <div class="left-section">
-                <div class="form-field"><label>Name:</label><input value="${guestName}" readonly /></div>
-                <div class="form-field"><label>CNIC:</label><input value="${cnic}" readonly /></div>
-                <div class="form-field address-field"><label>Address:</label><input value="${address}" readonly /></div>
-                <div class="form-field"><label>Email:</label><input style="flex: 1; background: transparent; border: none; border-bottom: 1px solid #000; font-size: 13px;" value="${email}" readonly /></div>
-                <div class="form-field"><label>Contact:</label><input value="${contact}" readonly /></div>
-                <div class="form-field"><label>Total Nights:</label><input value="${duration}" readonly /></div>
-                <div class="form-field"><label>Total Amount:</label><input value="${totalPrice}" readonly /></div>
-                <div class="form-field"><label>Early Check-in:</label><input value="${earlyCheckIn}" readonly /></div>
-                <div class="form-field"><label>Price/Night:</label><input value="${pricePerNight}" readonly /></div>
-                <div class="form-field"><label>Channel <br> ID:</label><input value="${channelName}" readonly /></div>
-              </div>
-              <div class="right-section">
-                <div class="form-field"><label>Unit:</label><input value="${listingMapId}" readonly /></div>
-                <div class="form-field"><label>Type:</label><input value="${listingType}" readonly /></div>
-                <div class="form-field"><label>Adults:</label><input value="${adults}" readonly /></div>
-                <div class="form-field"><label>Children:</label><input value="${children}" readonly /></div>
-                <div class="form-field"><label>Check-in Date:</label><input value="${arrival}" readonly /></div>
-                <div class="form-field"><label>Check-in Time:</label><input value="${checkInTime}" readonly /></div>
-                <div class="form-field"><label>Check-out Date:</label><input value="${departure}" readonly /></div>
-                <div class="form-field"><label>Check-out Time:</label><input value="${checkOutTime}" readonly /></div>
-                <div class="form-field"><label>Vehicle No:</label><input value="${vehicleNumber}" readonly /></div>
-                <div class="form-field"><label>Security Deposit:</label><input value="${securityDepositFee}" readonly /></div>
-              </div>
-            </div>
+  <div class="left-section">
+    <div class="form-field"><label>Name:</label><input value="${guestName}" readonly /></div>
+    <div class="form-field"><label>CNIC:</label><input value="${cnic}" readonly /></div>
+    <div class="form-field"><label>Unit:</label><input value="${listingMapId}" readonly /></div>
+    <div class="form-field"><label>Type:</label><input value="${listingType}" readonly /></div>
+    <div class="form-field"><label>Contact:</label><input value="${contact}" readonly /></div>
+    <div class="form-field"><label>Total Nights:</label><input value="${duration}" readonly /></div>
+    <div class="form-field"><label>Total Amount:</label><input value="${totalPrice}" readonly /></div>
+    <div class="form-field"><label>Early Check-in:</label><input value="${earlyCheckIn}" readonly /></div>
+    <div class="form-field"><label>Price/Night:</label><input value="${pricePerNight}" readonly /></div>
+    <div class="form-field"><label>Channel ID:</label><input value="${channelName}" readonly /></div>
+  </div>
+
+  <div class="right-section">
+  <div class="form-field"><label>Address:</label><div class="field-value">${address}</div></div>
+  <div class="form-field"><label>Email:</label><div class="field-value">${email}</div></div>
+  <div class="form-field"><label>Adults:</label><div class="field-value">${adults}</div></div>
+  <div class="form-field"><label>Children:</label><div class="field-value">${children}</div></div>
+  <div class="form-field"><label>Check-in Date:</label><div class="field-value">${arrival}</div></div>
+  <div class="form-field"><label>Check-in Time:</label><div class="field-value">${checkInTime}</div></div>
+  <div class="form-field"><label>Check-out Date:</label><div class="field-value">${departure}</div></div>
+  <div class="form-field"><label>Check-out Time:</label><div class="field-value">${checkOutTime}</div></div>
+  <div class="form-field"><label>Vehicle No:</label><div class="field-value">${vehicleNumber}</div></div>
+  <div class="form-field"><label>Security Deposit:</label><div class="field-value">${securityDepositFee}</div></div>
+</div>
+</div>
 
             
             <div class="space" style="padding: 15px">
