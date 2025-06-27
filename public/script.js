@@ -1525,15 +1525,32 @@ async function handlePrint(reservationId, printType) {
               margin: 4px 0 !important;
               text-align: right;
             }
+              .download-btn {
+    padding: 10px 15px;
+    background: transparent;
+    color: black;
+    border: 1px solid black;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 15px;
+    transition: background 0.3s, color 0.3s;
+}
+
+.download-btn:hover {
+  background: black;
+  color: white;
+}
+
           </style>
         </head>
         <body>
           <div class="form">
             <div style="position: absolute; top: 5px; right: 5px; z-index: 1000;">
-              <button onclick="downloadForm()" style="padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">
-                Download
-              </button>
-            </div>
+  <button onclick="downloadForm()" class="download-btn">
+    Download
+  </button>
+</div>
+
             <div class="logo-img">
               <img
                 src="img/booknrent-logo.png"
