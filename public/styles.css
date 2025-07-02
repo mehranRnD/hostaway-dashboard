@@ -302,12 +302,12 @@ body {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 .same-day-checkout-btn {
-  background-color: #0099cc;
+  background-color: #136f63;
   color: white;
 }
 
 .same-day-checkout-btn:hover {
-  background-color: #007a99;
+  background-color: #005303;
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
@@ -1585,7 +1585,7 @@ body {
 }
 
 .early-checkout-btn {
-  background-color: #9c27b0; /* Purple color */
+  background-color: #938581; /* Purple color */
   color: white;
   border: none;
   padding: 8px 16px;
@@ -1595,8 +1595,52 @@ body {
 }
 
 .early-checkout-btn:hover {
-  background-color: #7b1fa2; /* Darker purple on hover */
+  background-color: #827572; /* Darker purple on hover */
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+/* Button container for reservation actions */
+.reservation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* Make buttons full width on mobile */
+@media (max-width: 768px) {
+  .reservation-actions {
+    flex-direction: column;
+  }
+
+  .check-in-btn,
+  .check-out-btn,
+  .print-btn,
+  .guest-portal-btn,
+  .same-day-checkout-btn,
+  .early-checkout-btn {
+    width: 100%;
+    text-align: center;
+    margin: 3px 0;
+    padding: 10px;
+    font-size: 14px;
+  }
+}
+
+/* Add specific style for early checkout button */
+.early-checkout-btn {
+  background-color: #938581;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.early-checkout-btn:hover {
+  background-color: #827572;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}

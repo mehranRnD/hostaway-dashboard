@@ -477,6 +477,7 @@ function createReservationCard(reservation, sectionType) {
       ${
         sectionType === "actualCheckIns"
           ? `
+      <div class="reservation-actions">
         <button class="print-btn" data-res-id="${reservation.hostawayReservationId}" data-type="checkin">
           Print Check-in
         </button>
@@ -486,7 +487,8 @@ function createReservationCard(reservation, sectionType) {
         <button class="early-checkout-btn" data-res-id="${reservation.hostawayReservationId}">
           Early Check Out
         </button>
-      `
+      </div>
+    `
           : ""
       }
       ${
@@ -1691,7 +1693,6 @@ async function handlePrint(reservationId, printType) {
       if (!response.ok) {
         console.error("Failed to fetch reservation details");
         return {
-          securityDepositFee: "",
           lateCheckOutCharges: "",
           allTotalCharges: "",
           financeFields: {},
@@ -1763,11 +1764,55 @@ async function handlePrint(reservationId, printType) {
     }
     // Fetch finance fields for checkout
     const {
-      securityDepositFee,
       lateCheckOutCharges: financeLateCheckoutCharges,
       allTotalCharges,
       financeFields,
     } = await getFinanceFields(reservationId);
+    let CheckOutSecurityDeposit = "0";
+    let CheckOutDamageDeposit = "0";
+
+    // Fetch and log financeField array
+    try {
+      const response = await fetch(
+        `https://api.hostaway.com/v1/reservations/${reservationId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${API_TOKEN}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const financeFieldArray = data.result.financeField || [];
+        console.log("Finance Field Array:", financeFieldArray);
+
+        // Find the matching entry
+        const securityDepositEntry = financeFieldArray.find(
+          (item) => item.alias === "Security Deposit"
+        );
+        const damageDepositEntry = financeFieldArray.find(
+          (item) => item.alias === "Damage Fee"
+        );
+        if (securityDepositEntry) {
+          CheckOutSecurityDeposit = securityDepositEntry.value;
+          console.log("CheckOutSecurityDeposit:", CheckOutSecurityDeposit);
+        } else {
+          console.log("Security Deposit not found in finance fields");
+        }
+        if (damageDepositEntry) {
+          CheckOutDamageDeposit = damageDepositEntry.value;
+          console.log("CheckOutDamageDeposit:", CheckOutDamageDeposit);
+        } else {
+          console.log("Damage Deposit not found in finance fields");
+        }
+      } else {
+        console.error("Failed to fetch finance field data");
+      }
+    } catch (error) {
+      console.error("Error fetching finance field data:", error);
+    }
 
     // Initialize lateCheckOutCharges with finance fields value or empty string
     lateCheckOutCharges =
@@ -1973,7 +2018,7 @@ async function handlePrint(reservationId, printType) {
     </div>
     <div class="field-group">
       <span class="field-label">Security Deposit Amount Returned:</span>
-      <span class="field-value">${securityDepositFee || "0"}</span>
+      <span class="field-value">${CheckOutSecurityDeposit || "0"}</span>
     </div>
   </div>
 </div>
@@ -2078,11 +2123,16 @@ async function handlePrint(reservationId, printType) {
             )}</p>`
           : ""
       }
-      ${
-        financeFields.otherFees > 0
-          ? `<p>• Other Fees: ${financeFields.otherFees.toFixed(2)}</p>`
-          : ""
-      }
+     ${
+       CheckOutDamageDeposit !== "0"
+         ? `<p>• Damage Deposit: ${CheckOutDamageDeposit}</p>`
+         : ""
+     }
+${
+  CheckOutSecurityDeposit !== "0"
+    ? `<p>• Security Deposit: ${CheckOutSecurityDeposit}</p>`
+    : ""
+}
       ${
         financeFields.salesTax > 0
           ? `<p>• Sales Tax: ${financeFields.salesTax.toFixed(2)}</p>`
