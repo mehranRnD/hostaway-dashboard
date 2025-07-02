@@ -1440,7 +1440,6 @@ async function handlePrint(reservationId, printType) {
             .logo-img {
               display: flex;
               justify-content: center;
-              width: 100%;
               height: 60px;
               margin: 10px auto;
             }
@@ -1852,7 +1851,6 @@ async function handlePrint(reservationId, printType) {
     .logo-img {
       display: flex;
       justify-content: center;
-      width: 100%;
       height: 60px;
       margin: 10px 0px 20px 0px;
     }
@@ -1946,10 +1944,11 @@ async function handlePrint(reservationId, printType) {
     Download
   </button>
 </div>
+<div style="display: flex; flex-direction: row;">
     <div class="logo-img">
       <img src="img/booknrent-logo.png" alt="Booknrent Logo">
     </div>
-    <div class="heading-text">
+    <div class="heading-text" style="margin: 20px 0px 0px 40px !important">
   ${(() => {
     const sameDayData = JSON.parse(
       localStorage.getItem(`sameDayCheckOut_${reservationId}`) || "{}"
@@ -1962,35 +1961,35 @@ async function handlePrint(reservationId, printType) {
       earlyCheckOutData && earlyCheckOutData.allowed === true;
 
     if (isSameDayCheckout) {
-      return `<h3 style="text-align: center; margin: 0;">
+      return `<h3 style="text-align: center; margin: 0; font-size: 16px;">
                 ${guestName}'s Same Day Check-out Form 
                 <span style="font-size: 12px; color: #666;">(${reservationId})</span>
               </h3>
-              <p style="text-align: center; font-family: monospace; margin:0px 0px -16px 0px !important">
+              <p style="text-align: center; font-family: monospace; margin:0px 0px -16px 0px !important; font-size: 15px; width: 92%;">
                 Actual Check-out Date / Time: ${actualCheckOutTime}
               </p>`;
     } else if (isEarlyCheckOut) {
-      return `<h3 style="text-align: center; margin: 0;">
+      return `<h3 style="text-align: center; margin: 0; font-size: 16px;">
                 ${guestName}'s Early Check-out Form 
                 <span style="font-size: 12px; color: #666;">(${reservationId})</span>
               </h3>
-              <p style="text-align: center; font-family: monospace; margin:0px 0px -16px 0px !important">
+              <p style="text-align: center; font-family: monospace; margin:0px 0px -16px 0px !important; font-size: 15px; width: 92%;">
                 Actual Check-out Date / Time: ${actualCheckOutTime}
               </p>`;
     } else {
-      return `<h3 style="text-align: center; margin: 0;">
+      return `<h3 style="text-align: center; margin: 0; font-size: 16px;">
                 ${guestName}'s Check-out Form 
                 <span style="font-size: 12px; color: #666;">(${reservationId})</span>
               </h3>
-              <p style="text-align: center; font-family: monospace; margin:0px 0px -16px 0px !important">
+              <p style="text-align: center; font-family: monospace; margin:0px 0px -16px 0px !important; font-size: 15px; width: 92%;">
                 Actual Check-out Date / Time: ${actualCheckOutTime}
               </p>`;
     }
   })()}
+   </div>
 </div>
 
-
-    <p>
+    <p style="text-align: center; font-size: 18px;">
       I, <strong>${guestName}</strong>, have checked out of the apartment <strong>${listingMapId}</strong> on <strong>${departure}</strong>. 
       I have checked the apartment for any personal belongings, including but not limited to:
     </p>
@@ -2184,7 +2183,6 @@ ${
             )}</p>`
           : ""
       }
-      ${damageCharges > 0 ? `<p>• Damage Deposit: ${damageCharges}</p>` : ""}
     </div>
     `
       : ""
@@ -2199,12 +2197,12 @@ ${
 <div style="margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
   <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
     <div style="flex: 1;">
-      <p style="margin: 5px 0;"><strong>Guest Name:</strong> ${
+      <p style="margin: 5px 0;"><strong>Guest Name:</strong> <br> ${
         guestName || "N/A"
       }</p>
     </div>
     <div style="flex: 1;">
-      <p style="margin: 5px 0;"><strong>Vehicle Number:</strong> ${
+      <p style="margin: 5px 0;"><strong>Vehicle Number:</strong> <br> ${
         vehicleNumber || "N/A"
       }</p>
     </div>
@@ -2212,12 +2210,12 @@ ${
   <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
     
     <div style="flex: 1;">
-      <p style="margin: 5px 0;"><strong>Apartment:</strong> ${
+      <p style="margin: 5px 0;"><strong>Apartment:</strong> <br> ${
         listingMapId || "N/A"
       }</p>
     </div>
     <div style="flex: 1;">
-      <p style="margin: 5px 0;"><strong>Departure Date and Time:</strong> ${
+      <p style="margin: 5px 0;"><strong>Departure Date and Time:</strong> <br> ${
         actualCheckOutTime || "N/A"
       }</p>
     </div>
@@ -2225,7 +2223,7 @@ ${
   
     </div>
 </div>
-<p style="text-align: center; margin: -2px 0px -6px 0px;">Thank you for staying with BooknRent, Good Bye!</p>
+<p style="text-align: center; margin: -2px 0px -6px 0px;">Thank you for staying with <img src="img/booknrent-logo2.png" alt="Booknrent Logo" style="width: 95px; object-fit: contain;">, Good Bye!</p>
 </div>
 
   <script>
