@@ -6,7 +6,7 @@
     <title>Namuve Dashboard</title>
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="responsive.css" />
-    
+
     <link
       rel="icon"
       href="https://i.ibb.co/vC3k9ZXv/favicon-32x32.png"
@@ -24,6 +24,7 @@
             <h1>Namuve Dashboard</h1>
           </div>
         </div>
+
         <div class="header-right">
           <div class="calendar-button-container">
             <button class="calendar-button" id="calendarButton">
@@ -145,7 +146,6 @@
             </div>
           </div>
         </div>
-        <div class="slack-icon"></div>
         <div class="stat-card" id="occupancyGraph">
           <h2>Today's Occupancy Graph</h2>
           <div id="occupancyChart"></div>
@@ -312,10 +312,43 @@
 
     <!-- Slack Icon -->
     <div class="slack-icon">
+      
+        <div style="display: none;">
+          <a id="earlyCheckoutBtn" style=" margin-bottom: 15px;">
+            <img style="border-radius: 10px;" width="50px" src="img/early-check-out.png" alt="" />
+            <span >Early Check-out?</span>
+          </a>
+        </div>
+      
       <a href="https://namuve.slack.com/archives/C083M9C2Z8A" target="_blank">
-        <img src="img/slack-logo.png" alt="Slack" />
+        <img style="border-radius: 10px;" width="50px" src="img/slack-logo.png" alt="Slack" />
         <span>Got any query?</span>
       </a>
+    </div>
+    <div id="earlyCheckOutModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Early Check Out Reservations</h2>
+        <div id="modal-loading" class="loading">
+          Loading reservations data...
+        </div>
+        <div id="modal-reservations-container" style="display: none">
+          <table id="modal-reservations-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Guest Name</th>
+                <th>Arrival Date</th>
+                <th>Departure Date</th>
+                <th>Status</th>
+                <th>Early Check-out</th>
+                <th style="text-align: center">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="modal-reservations-body"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- External libraries -->
@@ -326,161 +359,6 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <script src="script.js"></script>
-
-    <script>
-      const tbody = document.getElementById("damageTableBody");
-      const sampleData = [
-        {
-          name: "Three Seat Sofa (Burn&Damage)",
-          price: "10,000",
-          status: "pending",
-        },
-        {
-          name: "Two Seat Sofa (Burn&Damage)",
-          price: "8,000",
-          status: "pending",
-        },
-        { name: "Round Glass Table", price: "5,000", status: "pending" },
-        { name: "Chair (Burn&Damage)", price: "3,000", status: "pending" },
-        { name: "Side Table (Burn&Damage)", price: "3,000", status: "pending" },
-        {
-          name: "Dinning Table (Burn&Damage)",
-          price: "10,000",
-          status: "pending",
-        },
-        { name: "Chair Each (Burn&Damage)", price: "5,000", status: "pending" },
-        {
-          name: "Enterance Console (Burn&Damage)",
-          price: "3,000",
-          status: "pending",
-        },
-        { name: "Lamp(each) (Burn&Damage)", price: "8,000", status: "pending" },
-        {
-          name: "Medium Painting (Burn&Damage)",
-          price: "4,000",
-          status: "pending",
-        },
-        {
-          name: "Large Painting (Burn&Damage)",
-          price: "7,000",
-          status: "pending",
-        },
-        { name: "Ash Tray", price: "500", status: "pending" },
-        {
-          name: "Demy Book (Décor Item)(Burn&Damage)",
-          price: "1,000",
-          status: "pending",
-        },
-        { name: "Ceramic Vase", price: "3,000", status: "pending" },
-        { name: "Glass Vase", price: "2,000", status: "pending" },
-        {
-          name: "Window Curtain With Hanging Belt (Burn&Damage)",
-          price: "5,000",
-          status: "pending",
-        },
-        {
-          name: "Carpet Rug Large (5x7)(Burn&Damage)",
-          price: "25,000",
-          status: "pending",
-        },
-        {
-          name: "Carpet Rug Medium(4x6)(Burn&Damage)",
-          price: "15,000",
-          status: "pending",
-        },
-        { name: "Bedsheet(Burn&Damage)", price: "2,000", status: "pending" },
-        {
-          name: "Pillow Cover(Burn&Damage)",
-          price: "1,000",
-          status: "pending",
-        },
-        { name: "Duvet Cover(Burn&Damage)", price: "4,000", status: "pending" },
-        { name: "Cushion(Burn&Damage)", price: "1,500", status: "pending" },
-        { name: "Slippers Pair", price: "1,000", status: "pending" },
-        { name: "Toilet Basket", price: "1,000", status: "pending" },
-        { name: "Towel (Burn&Damage)", price: "1,500", status: "pending" },
-        { name: "Mattress(Burn&Damage)", price: "25,000", status: "pending" },
-        { name: "TCL 4K HDR LED 50INCHS", price: "110,000", status: "pending" },
-        {
-          name: "Haier Refrigerator (Damage)",
-          price: "25,000",
-          status: "pending",
-        },
-        { name: "Microwave Oven (Damage)", price: "7,000", status: "pending" },
-        {
-          name: "Anex Electrical Kettle 4042 (Damage)",
-          price: "3,000",
-          status: "pending",
-        },
-        {
-          name: "Anex Hotplate 6062 (Damage)",
-          price: "6,000",
-          status: "pending",
-        },
-        { name: "Glass each (Damage)", price: "200", status: "pending" },
-        { name: "Water Jug (Damage)", price: "600", status: "pending" },
-        { name: "Cup with saucers (Damage)", price: "400", status: "pending" },
-        { name: "Cooking pot (Damage)", price: "4,000", status: "pending" },
-        { name: "Cooking pan (Damage)", price: "4,000", status: "pending" },
-        { name: "Frying Pan (Damage)", price: "4,000", status: "pending" },
-        { name: "Rice Dish (Damage)", price: "1,000", status: "pending" },
-        { name: "Bowl (Damage)", price: "1,500", status: "pending" },
-        { name: "Soup Plates (Damage)", price: "500", status: "pending" },
-        { name: "Dinner Plates (Damage)", price: "700", status: "pending" },
-        { name: "Cooking Spoon (Damage)", price: "600", status: "pending" },
-        { name: "Table spoon (Damage) each", price: "300", status: "pending" },
-        { name: "Tea Spoon (Damage)", price: "200", status: "pending" },
-        { name: "Table Fork (Damage)", price: "300", status: "pending" },
-        { name: "Knife (Damage)", price: "500", status: "pending" },
-        { name: "Tea Strainer (Damage)", price: "500", status: "pending" },
-        {
-          name: "Max Liquid Dishwasher (Missing)",
-          price: "400",
-          status: "pending",
-        },
-        { name: "Max Scrub (Missing)", price: "150", status: "pending" },
-        { name: "Looking Mirror", price: "9,000", status: "pending" },
-      ];
-
-      // Split data into two columns
-      const half = Math.ceil(sampleData.length / 2);
-      const firstHalf = sampleData.slice(0, half);
-      const secondHalf = sampleData.slice(half);
-
-      // Add rows with two items each
-      const maxRows = Math.max(firstHalf.length, secondHalf.length);
-      for (let i = 0; i < maxRows; i++) {
-        const row = document.createElement("tr");
-
-        // First column item
-        if (i < firstHalf.length) {
-          const item1 = firstHalf[i];
-          row.innerHTML += `
-            <td>${i + 1}</td>
-            <td>${item1.name}</td>
-            <td><span class="status ${item1.status}">${item1.price}</span></td>
-          `;
-        } else {
-          row.innerHTML += "<td></td><td></td><td></td>";
-        }
-
-        // Spacer column
-        row.innerHTML += "<td></td>";
-
-        // Second column item
-        if (i < secondHalf.length) {
-          const item2 = secondHalf[i];
-          row.innerHTML += `
-            <td>${i + half + 1}</td>
-            <td>${item2.name}</td>
-            <td><span class="status ${item2.status}">${item2.price}</span></td>
-          `;
-        } else {
-          row.innerHTML += "<td></td><td></td><td></td>";
-        }
-
-        tbody.appendChild(row);
-      }
-    </script>
+    <script src="earlyCheckOut.js"></script>
   </body>
 </html>

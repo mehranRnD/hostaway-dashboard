@@ -27,6 +27,7 @@ const listings = [
   { listingId: 307143, listingName: "1F-15 (1B)", listingType: "1 Bed Room" },
   { listingId: 309909, listingName: "GF-06 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 323227, listingName: "4F-42 (2B)", listingType: "2 Bed Rooms" },
+  { listingId: 410263, listingName: "4F-44 (S)", listingType: "Studio" },
   { listingId: 323229, listingName: "1F-10 (A) (S)", listingType: "Studio" },
   { listingId: 323258, listingName: "1F-10 (B) (1B)", listingType: "1 Bed Room" },
   { listingId: 323261, listingName: "1F-10 (C) (S)", listingType: "Studio" },
@@ -435,9 +436,15 @@ function createReservationCard(reservation, sectionType) {
   card.innerHTML = `
     <div class="reservation-header">
       <h3>${reservation.guestName || "Unknown Guest"}</h3>
-      <span class="reservation-id">Reservation ID: ${
-        reservation.hostawayReservationId || "Unknown ID"
-      }</span>
+      <span class="reservation-id">
+  ${
+    reservation.hostawayReservationId
+      ? `Reservation ID: <a href="https://dashboard.hostaway.com/v3/reservations/${reservation.hostawayReservationId}" target="_blank" style="color: #235ed5; text-decoration: none; font-weight: 500;">${reservation.hostawayReservationId}</a>`
+      : "Reservation ID: Unknown ID"
+  }
+</span>
+
+
     </div>
     <div class="reservation-details">
       <div class="detail-row">
@@ -484,9 +491,7 @@ function createReservationCard(reservation, sectionType) {
         <button class="same-day-checkout-btn" data-res-id="${reservation.hostawayReservationId}">
           Same Day Check-Out
         </button>
-        <button class="early-checkout-btn" data-res-id="${reservation.hostawayReservationId}">
-          Early Check Out
-        </button>
+        
       </div>
     `
           : ""
@@ -509,7 +514,7 @@ function createReservationCard(reservation, sectionType) {
     const checkOutBtn = card.querySelector(".check-out-btn");
     const printBtn = card.querySelector(".print-btn");
     const sameDayCheckoutBtn = card.querySelector(".same-day-checkout-btn");
-    const earlyCheckoutBtn = card.querySelector(".early-checkout-btn");
+    // const earlyCheckoutBtn = card.querySelector(".early-checkout-btn");
 
     if (checkInBtn) {
       checkInBtn.addEventListener("click", () => handleCheckIn(reservation));
@@ -528,31 +533,31 @@ function createReservationCard(reservation, sectionType) {
         handleSameDayCheckOut(reservation)
       );
     }
-    if (earlyCheckoutBtn) {
-      // Check stored early check-out status
-      const earlyCheckOutStatus = JSON.parse(
-        localStorage.getItem(`earlyCheckOut_${reservationId}`) || "{}"
-      );
-      // Set initial button state
-      if (
-        earlyCheckOutStatus.allowed === false ||
-        earlyCheckOutStatus.value === "No"
-      ) {
-        earlyCheckoutBtn.disabled = true;
-        earlyCheckoutBtn.style.opacity = "0.5";
-        earlyCheckoutBtn.title =
-          "Early check-out not allowed for this reservation";
-      } else if (earlyCheckOutStatus.value === "Yes") {
-        earlyCheckoutBtn.disabled = false;
-        earlyCheckoutBtn.style.opacity = "1";
-        earlyCheckoutBtn.title = "";
-      }
-      // Add click event listener
-      earlyCheckoutBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        handleEarlyCheckOut(reservation);
-      });
-    }
+    // if (earlyCheckoutBtn) {
+    //   // Check stored early check-out status
+    //   const earlyCheckOutStatus = JSON.parse(
+    //     localStorage.getItem(`earlyCheckOut_${reservationId}`) || "{}"
+    //   );
+    //   // Set initial button state
+    //   if (
+    //     earlyCheckOutStatus.allowed === false ||
+    //     earlyCheckOutStatus.value === "No"
+    //   ) {
+    //     earlyCheckoutBtn.disabled = true;
+    //     earlyCheckoutBtn.style.opacity = "0.5";
+    //     earlyCheckoutBtn.title =
+    //       "Early check-out not allowed for this reservation";
+    //   } else if (earlyCheckOutStatus.value === "Yes") {
+    //     earlyCheckoutBtn.disabled = false;
+    //     earlyCheckoutBtn.style.opacity = "1";
+    //     earlyCheckoutBtn.title = "";
+    //   }
+    //   // Add click event listener
+    //   earlyCheckoutBtn.addEventListener("click", (e) => {
+    //     e.stopPropagation();
+    //     handleEarlyCheckOut(reservation);
+    //   });
+    // }
   }, 0);
 
   return card;
@@ -581,7 +586,7 @@ function handleEarlyCheckOut(reservation) {
       );
 
       if (earlyCheckOutField) {
-        console.log("Early Check Out Value:", earlyCheckOutField.value);
+        // console.log("Early Check Out Value:", earlyCheckOutField.value);
 
         // Store the early check-out status in localStorage
         const isAllowed = earlyCheckOutField.value === "Yes";
@@ -594,24 +599,24 @@ function handleEarlyCheckOut(reservation) {
         );
 
         // Disable button if value is not "Yes"
-        const earlyCheckOutBtn = document.querySelector(
-          `.early-checkout-btn[data-res-id="${reservationId}"]`
-        );
-        if (earlyCheckOutBtn) {
-          if (!isAllowed) {
-            earlyCheckOutBtn.disabled = true;
-            earlyCheckOutBtn.style.opacity = "0.5";
-            earlyCheckOutBtn.title =
-              "Early check-out not allowed for this reservation";
-            return;
-          } else {
-            earlyCheckOutBtn.disabled = false;
-            earlyCheckOutBtn.style.opacity = "1";
-            earlyCheckOutBtn.title = "";
-          }
-        }
+        // const earlyCheckOutBtn = document.querySelector(
+        //   `.early-checkout-btn[data-res-id="${reservationId}"]`
+        // );
+        // if (earlyCheckOutBtn) {
+        //   if (!isAllowed) {
+        //     earlyCheckOutBtn.disabled = true;
+        //     earlyCheckOutBtn.style.opacity = "0.5";
+        //     earlyCheckOutBtn.title =
+        //       "Early check-out not allowed for this reservation";
+        //     return;
+        //   } else {
+        //     earlyCheckOutBtn.disabled = false;
+        //     earlyCheckOutBtn.style.opacity = "1";
+        //     earlyCheckOutBtn.title = "";
+        //   }
+        // }
       } else {
-        console.log("Early Check-Out Field not found.");
+        // console.log("Early Check-Out Field not found.");
         // Store unknown status and disable the button
         localStorage.setItem(
           `earlyCheckOut_${reservationId}`,
@@ -620,14 +625,14 @@ function handleEarlyCheckOut(reservation) {
             value: "unknown",
           })
         );
-        const earlyCheckOutBtn = document.querySelector(
-          `.early-checkout-btn[data-res-id="${reservationId}"]`
-        );
-        if (earlyCheckOutBtn) {
-          earlyCheckOutBtn.disabled = true;
-          earlyCheckOutBtn.style.opacity = "0.5";
-          earlyCheckOutBtn.title = "Early check-out status unknown";
-        }
+        // const earlyCheckOutBtn = document.querySelector(
+        //   `.early-checkout-btn[data-res-id="${reservationId}"]`
+        // );
+        // if (earlyCheckOutBtn) {
+        //   earlyCheckOutBtn.disabled = true;
+        //   earlyCheckOutBtn.style.opacity = "0.5";
+        //   earlyCheckOutBtn.title = "Early check-out status unknown";
+        // }
         return;
       }
 
@@ -698,12 +703,12 @@ function handleEarlyCheckOut(reservation) {
 
           if (reservationCard) {
             // Remove Early Check-Out button
-            const earlyCheckOutBtn = reservationCard.querySelector(
-              ".early-checkout-btn"
-            );
-            if (earlyCheckOutBtn) {
-              earlyCheckOutBtn.remove();
-            }
+            // const earlyCheckOutBtn = reservationCard.querySelector(
+            //   ".early-checkout-btn"
+            // );
+            // if (earlyCheckOutBtn) {
+            //   earlyCheckOutBtn.remove();
+            // }
 
             // Remove Same Day Check-Out button if it exists
             const sameDayBtn = reservationCard.querySelector(
@@ -776,9 +781,9 @@ function handleCheckIn(reservation) {
   existingCheckIns[reservation.hostawayReservationId] = formattedDateTime;
   localStorage.setItem("actualCheckIns", JSON.stringify(existingCheckIns));
 
-  console.log(
-    `Check-in marked for reservation ${reservation.hostawayReservationId} at: ${formattedDateTime}`
-  );
+  // console.log(
+  //   `Check-in marked for reservation ${reservation.hostawayReservationId} at: ${formattedDateTime}`
+  // );
 
   // Store check-in in database
   fetch(`${SERVER_URL}/api/check-ins`, {
@@ -800,19 +805,19 @@ function handleCheckIn(reservation) {
     .then((response) => response.json())
     .then((data) => {
       if (data.success) {
-        console.log("Check-in saved to database:", data.data);
+        // console.log("Check-in saved to database:", data.data);
       } else {
-        console.error("Failed to save check-in to database:", data.message);
+        // console.error("Failed to save check-in to database:", data.message);
       }
     })
     .catch((error) => {
       console.error("Error saving check-in to database:", error);
     });
   // Notify Latenode webhook about check-in
-  console.log(
-    "Sending check-in notification for reservation ID:",
-    reservation.hostawayReservationId
-  );
+  // console.log(
+  //   "Sending check-in notification for reservation ID:",
+  //   reservation.hostawayReservationId
+  // );
   fetch(`${SERVER_URL}/api/notify-checkin`, {
     method: "POST",
     headers: {
@@ -830,7 +835,7 @@ function handleCheckIn(reservation) {
       return data;
     })
     .then((data) => {
-      console.log("Check-in notification sent to Latenode", data);
+      // console.log("Check-in notification sent to Latenode", data);
     })
     .catch((error) => {
       console.error("Error details:", {
@@ -858,10 +863,10 @@ function handleCheckIn(reservation) {
     }),
   })
     .then(() => {
-      console.log(
-        "Check-in marked for reservation:",
-        reservation.hostawayReservationId
-      );
+      // console.log(
+      //   "Check-in marked for reservation:",
+      //   reservation.hostawayReservationId
+      // );
     })
     .catch((error) => {
       console.error("Error updating reservation:", error);
@@ -871,7 +876,7 @@ function handleCheckIn(reservation) {
   const actualCheckInsList = document.querySelector("#actualCheckInsList");
 
   if (!expectedCheckInsList || !actualCheckInsList) {
-    console.error("Check-in lists not found");
+    // console.error("Check-in lists not found");
     return;
   }
 
@@ -912,17 +917,17 @@ function handleCheckIn(reservation) {
     actionsDiv.appendChild(sameDayCheckOutBtn);
 
     // Create Early Check-Out button
-    const earlyCheckOutBtn = document.createElement("button");
-    earlyCheckOutBtn.className = "early-checkout-btn";
-    earlyCheckOutBtn.textContent = "Early Check-Out";
-    earlyCheckOutBtn.setAttribute(
-      "data-res-id",
-      reservation.hostawayReservationId
-    );
-    earlyCheckOutBtn.addEventListener("click", () => {
-      handleEarlyCheckOut(reservation);
-    });
-    actionsDiv.appendChild(earlyCheckOutBtn);
+    // const earlyCheckOutBtn = document.createElement("button");
+    // earlyCheckOutBtn.className = "early-checkout-btn";
+    // earlyCheckOutBtn.textContent = "Early Check-Out";
+    // earlyCheckOutBtn.setAttribute(
+    //   "data-res-id",
+    //   reservation.hostawayReservationId
+    // );
+    // earlyCheckOutBtn.addEventListener("click", () => {
+    //   handleEarlyCheckOut(reservation);
+    // });
+    // actionsDiv.appendChild(earlyCheckOutBtn);
 
     // Move card to Actual Check-In section
     actualCheckInsList.appendChild(reservationCard);
@@ -996,16 +1001,20 @@ function handleCheckOut(reservation) {
   const reservationCard = document.querySelector(
     `.reservation-card[data-res-id="${reservationId}"]`
   );
-  if (!reservationCard) return;
+if (!reservationCard) {
+  console.warn(
+    "Reservation card not found in DOM. Performing headless checkout."
+  );
+}
   const existingCheckOuts = JSON.parse(
     localStorage.getItem("actualCheckOuts") || "{}"
   );
   existingCheckOuts[reservationId] = formattedDateTime;
   localStorage.setItem("actualCheckOuts", JSON.stringify(existingCheckOuts));
 
-  console.log(
-    `Check-out marked for reservation ${reservation.hostawayReservationId} at: ${formattedDateTime}`
-  );
+  // console.log(
+  //   `Check-out marked for reservation ${reservation.hostawayReservationId} at: ${formattedDateTime}`
+  // );
 
   // Store check-out in database
   fetch(`${SERVER_URL}/api/check-outs`, {
@@ -1027,9 +1036,9 @@ function handleCheckOut(reservation) {
     .then((response) => response.json())
     .then((data) => {
       if (data.success) {
-        console.log("Check-out saved to database:", data.data);
+        // console.log("Check-out saved to database:", data.data);
       } else {
-        console.error("Failed to save check-out to database:", data.message);
+        // console.error("Failed to save check-out to database:", data.message);
       }
     })
     .catch((error) => {
@@ -1054,10 +1063,10 @@ function handleCheckOut(reservation) {
     }),
   })
     .then(() => {
-      console.log(
-        "Check-out marked for reservation:",
-        reservation.hostawayReservationId
-      );
+      // console.log(
+      //   "Check-out marked for reservation:",
+      //   reservation.hostawayReservationId
+      // );
     })
     .catch((err) => console.error("Hostaway error", err));
 
@@ -1067,7 +1076,7 @@ function handleCheckOut(reservation) {
   );
 
   if (!actualCheckOutsList || !expectedCheckOutsList) {
-    console.error("Check-out lists not found");
+    // console.error("Check-out lists not found");
     return;
   }
 
@@ -1099,6 +1108,84 @@ function handleCheckOut(reservation) {
   }
 }
 
+
+const modal = document.getElementById("earlyCheckOutModal");
+const btn = document.getElementById("earlyCheckoutBtn");
+const span = modal.querySelector(".close");
+
+btn.onclick = () => {
+  modal.style.display = "block";
+};
+
+span.onclick = () => {
+  modal.style.display = "none";
+};
+
+window.onclick = (event) => {
+  if (event.target == modal) {
+    modal.style.display = "none";
+  }
+};
+
+// Handle reservation data
+document.addEventListener("reservationsLoaded", (event) => {
+  const reservations = event.detail;
+  const container = document.getElementById("modal-reservations-container");
+  const loading = document.getElementById("modal-loading");
+  const tbody = document.getElementById("modal-reservations-body");
+
+  loading.style.display = "none";
+  container.style.display = "block";
+
+  reservations.forEach((reservation) => {
+    const row = document.createElement("tr");
+
+    row.innerHTML = `
+<td>${
+      reservation.id
+        ? `<a href="https://dashboard.hostaway.com/v3/reservations/${reservation.id}" target="_blank" style="color: #235ed5; text-decoration: none; font-weight: 500;">${reservation.id}</a>`
+        : "N/A"
+    }</td>        <td>${reservation.guestName || "N/A"}</td>
+        <td>${
+          reservation.arrivalDate
+            ? new Date(reservation.arrivalDate).toLocaleDateString()
+            : "N/A"
+        }</td>
+        <td>${
+          reservation.departureDate
+            ? new Date(reservation.departureDate).toLocaleDateString()
+            : "N/A"
+        }</td>
+        <td>${reservation.status || "N/A"}</td>
+        <td style="text-align: center; color: ${
+          reservation.earlyCheckOut === "yes" ? "green" : "red"
+        };">${reservation.earlyCheckOut || "N/A"}</td>
+        <td>
+        <button 
+        class="check-out-btn"
+        data-res-id="${reservation.hostawayReservationId}"
+        data-reservation='${JSON.stringify(reservation).replace(/'/g, "\\'")}'
+        onclick="handleCheckOut(this)">
+        Mark Check Out
+        </button>     
+        </td>
+      `;
+
+    tbody.appendChild(row);
+  }); 
+});
+
+window.addEventListener("error", (error) => {
+  const loading = document.getElementById("modal-loading");
+  loading.textContent =
+    "Error loading data. Please check the console for details.";
+  console.error("Error:", error);
+});
+
+
+
+
+
 // Add event listener for check-in and check-out buttons
 document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener(
@@ -1129,7 +1216,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // Handle check-out button
       else if (e.target.classList.contains("check-out-btn")) {
         e.preventDefault();
-        e.stopImmediatePropagation();
+e.stopPropagation();
         const reservationId = e.target.getAttribute("data-res-id");
         if (reservationId) {
           // Get the full reservation object from the card
@@ -1211,7 +1298,7 @@ async function handlePrint(reservationId, printType) {
 
       const data = await response.json();
       const customFields = data.result?.customFieldValues || [];
-      console.log("Custom Fields:", customFields);
+      // console.log("Custom Fields:", customFields);
 
       if (customFields && Array.isArray(customFields)) {
         // Get Actual Check-in Time
@@ -1222,9 +1309,9 @@ async function handlePrint(reservationId, printType) {
         );
         if (checkInField) {
           actualCheckInTime = checkInField.value;
-          console.log("Actual Check-in Time:", actualCheckInTime);
+          // console.log("Actual Check-in Time:", actualCheckInTime);
         } else {
-          console.log("Actual Check-in Time not found.");
+          // console.log("Actual Check-in Time not found.");
         }
 
         // Get ID Card/Passport Number
@@ -1235,9 +1322,9 @@ async function handlePrint(reservationId, printType) {
         );
         if (cnicField) {
           cnic = cnicField.value;
-          console.log("CNIC:", cnic);
+          // console.log("CNIC:", cnic);
         } else {
-          console.log("CNIC not found.");
+          // console.log("CNIC not found.");
         }
 
         // Get Address
@@ -1247,9 +1334,9 @@ async function handlePrint(reservationId, printType) {
         );
         if (addressField) {
           address = addressField.value;
-          console.log("Address:", address);
+          // console.log("Address:", address);
         } else {
-          console.log("Address not found.");
+          // console.log("Address not found.");
         }
 
         // Get Vehicle Number
@@ -1261,9 +1348,9 @@ async function handlePrint(reservationId, printType) {
 
         if (vehicleNumberField) {
           vehicleNumber = vehicleNumberField.value;
-          console.log("Vehicle Number:", vehicleNumber);
+          // console.log("Vehicle Number:", vehicleNumber);
         } else {
-          console.log("Vehicle Number not found.");
+          // console.log("Vehicle Number not found.");
         }
 
         // Get Damage Charges
@@ -1274,9 +1361,10 @@ async function handlePrint(reservationId, printType) {
         );
 
         if (damageChargesField) {
-          console.log("Damage Charges:", damageChargesField.value);
+          damageCharges = damageChargesField.value;
+          // console.log("Damage Charges:", damageChargesField.value);
         } else {
-          console.log("Damage Charges not found.");
+          // console.log("Damage Charges not found.");
         }
         // Get PricePerNight
         const pricePerNightField = customFields.find(
@@ -1287,9 +1375,9 @@ async function handlePrint(reservationId, printType) {
 
         if (pricePerNightField) {
           pricePerNight = pricePerNightField.value;
-          console.log("PricePerNight:", pricePerNight);
+          // console.log("PricePerNight:", pricePerNight);
         } else {
-          console.log("PricePerNight not found.");
+          // console.log("PricePerNight not found.");
         }
         // Get Same Day Check-out
         const sameDayCheckoutField = customFields.find(
@@ -1299,12 +1387,12 @@ async function handlePrint(reservationId, printType) {
         );
 
         if (sameDayCheckoutField) {
-          console.log("Same Day Check-out:", sameDayCheckoutField.value);
+          // console.log("Same Day Check-out:", sameDayCheckoutField.value);
         } else {
-          console.log("Same Day Check-out not found.");
+          // console.log("Same Day Check-out not found.");
         }
       } else {
-        console.log("No custom field values found.");
+        // console.log("No custom field values found.");
       }
     } catch (error) {
       console.error("Error fetching reservation data:", error);
@@ -1318,9 +1406,9 @@ async function handlePrint(reservationId, printType) {
     const earlyCheckIn = financeFields.earlyCheckinFee;
 
     if (earlyCheckIn) {
-      console.log("Early Check-in:", earlyCheckIn);
+      // console.log("Early Check-in:", earlyCheckIn);
     } else {
-      console.log("Early Check-in not found or is 0.");
+      // console.log("Early Check-in not found or is 0.");
     }
     const listingMapId =
       listingsMap.get(reservation.listingMapId) || reservation.listingMapId;
@@ -1452,6 +1540,7 @@ async function handlePrint(reservationId, printType) {
               padding-bottom: 0.5rem !important;
               font-size: 20px;
               text-align: center;
+              
             }
             .form-container {
               display: flex;
@@ -1527,7 +1616,7 @@ async function handlePrint(reservationId, printType) {
               text-align: right;
             }
               .download-btn {
-    padding: 10px 15px;
+    padding: 7px 9px;
     background: transparent;
     color: black;
     border: 1px solid black;
@@ -1551,19 +1640,18 @@ async function handlePrint(reservationId, printType) {
     Download
   </button>
 </div>
-
-            <div class="logo-img">
+<div style="display: flex; flex-direction: row; margin-top: 25px">
+            <div class="logo-img"
+            >
               <img
                 src="img/booknrent-logo.png"
                 alt="Booknrent Logo"
               />
             </div>
-            <div class="heading-text">
-              <h2 style="
-              font-size: 20px;
-              text-align: center;
-              margin: 0;"> ${guestName}'s Check-in Form <span style="font-size: 12px; color: #666;">(${reservationId})</span></h2>
+            <div class="heading-text" style="margin: 25px 40px 10px 20px">
+              <h2 style="text-align: center; margin: 0; font-size: 16px;"> ${guestName}'s Check-in Form <span style="font-size: 12px; color: #666;">(${reservationId})</span></h2>
               <p style="text-align: center; font-family: monospace">Actual Check-in Date / Time: ${actualCheckInTime}</p>
+            </div>
             </div>
             <div class="form-container">
   <div class="left-section">
@@ -1699,9 +1787,9 @@ async function handlePrint(reservationId, printType) {
       }
 
       const data = await response.json();
-      console.log("Reservation Data:", data);
+      // console.log("Reservation Data:", data);
       const customFields = data.result?.customFieldValues;
-      console.log("Custom Fields:", customFields);
+      // console.log("Custom Fields:", customFields);
       if (customFields && Array.isArray(customFields)) {
         // Get Actual Check-out Time
         const checkOutField = customFields.find(
@@ -1711,9 +1799,9 @@ async function handlePrint(reservationId, printType) {
         );
         if (checkOutField) {
           actualCheckOutTime = checkOutField.value;
-          console.log("Actual Check-out Time:", actualCheckOutTime);
+          // console.log("Actual Check-out Time:", actualCheckOutTime);
         } else {
-          console.log("Actual Check-out Time not found.");
+          // console.log("Actual Check-out Time not found.");
         }
 
         // Get Damage Charges
@@ -1725,9 +1813,9 @@ async function handlePrint(reservationId, printType) {
 
         if (damageChargesField) {
           damageCharges = damageChargesField.value;
-          console.log("Damage Charges:", damageCharges);
+          // console.log("Damage Charges:", damageCharges);
         } else {
-          console.log("Damage Charges not found.");
+          // console.log("Damage Charges not found.");
         }
         // Get Vehicle Number
         const vehicleNumberField = customFields.find(
@@ -1738,9 +1826,9 @@ async function handlePrint(reservationId, printType) {
 
         if (vehicleNumberField) {
           vehicleNumber = vehicleNumberField.value;
-          console.log("Vehicle Number:", vehicleNumber);
+          // console.log("Vehicle Number:", vehicleNumber);
         } else {
-          console.log("Vehicle Number not found.");
+          // console.log("Vehicle Number not found.");
         }
         // Get Late Checkout Charges
         const lateCheckoutField = customFields.find(
@@ -1750,13 +1838,13 @@ async function handlePrint(reservationId, printType) {
         );
 
         if (lateCheckoutField) {
-          console.log("Late Checkout Charges:", lateCheckoutField.value);
+          // console.log("Late Checkout Charges:", lateCheckoutField.value);
           lateCheckOutCharges = lateCheckoutField.value;
         } else {
-          console.log("Late Checkout Charges not found.");
+          // console.log("Late Checkout Charges not found.");
         }
       } else {
-        console.log("No custom field values found.");
+        // console.log("No custom field values found.");
       }
     } catch (error) {
       console.error("Error fetching reservation data:", error);
@@ -1785,7 +1873,7 @@ async function handlePrint(reservationId, printType) {
       if (response.ok) {
         const data = await response.json();
         const financeFieldArray = data.result.financeField || [];
-        console.log("Finance Field Array:", financeFieldArray);
+        // console.log("Finance Field Array:", financeFieldArray);
 
         // Find the matching entry
         const securityDepositEntry = financeFieldArray.find(
@@ -1796,15 +1884,15 @@ async function handlePrint(reservationId, printType) {
         );
         if (securityDepositEntry) {
           CheckOutSecurityDeposit = securityDepositEntry.value;
-          console.log("CheckOutSecurityDeposit:", CheckOutSecurityDeposit);
+          // console.log("CheckOutSecurityDeposit:", CheckOutSecurityDeposit);
         } else {
-          console.log("Security Deposit not found in finance fields");
+          // console.log("Security Deposit not found in finance fields");
         }
         if (damageDepositEntry) {
           CheckOutDamageDeposit = damageDepositEntry.value;
-          console.log("CheckOutDamageDeposit:", CheckOutDamageDeposit);
+          // console.log("CheckOutDamageDeposit:", CheckOutDamageDeposit);
         } else {
-          console.log("Damage Deposit not found in finance fields");
+          // console.log("Damage Deposit not found in finance fields");
         }
       } else {
         console.error("Failed to fetch finance field data");
@@ -2223,7 +2311,7 @@ ${
   
     </div>
 </div>
-<p style="text-align: center; margin: -2px 0px -6px 0px;">Thank you for staying with <img src="img/booknrent-logo2.png" alt="Booknrent Logo" style="width: 95px; object-fit: contain;">, Good Bye!</p>
+<p style="text-align: center; margin: -2px 0px -6px 0px;">Thank you for staying with <img src="img/booknrent-logo2.png" alt="Booknrent Logo" style="width: 95px; object-fit: contain; margin-bottom: -2px;">, Good Bye!</p>
 </div>
 
   <script>
@@ -2709,7 +2797,7 @@ document.addEventListener("dateSelected", (e) => {
 document.addEventListener("click", function (e) {
   if (e.target && e.target.classList.contains("same-day-checkout-btn")) {
     const resId = e.target.dataset.resId;
-    console.log(`Reservation ID: ${resId}`);
+    // console.log(`Reservation ID: ${resId}`);
   }
 });
 
@@ -2929,7 +3017,7 @@ async function fetchCheckInOutData() {
     const checkInsData = await checkInsResponse.json();
 
     if (checkInsData.success) {
-      console.log("Check-ins from database:", checkInsData.data);
+      // console.log("Check-ins from database:", checkInsData.data);
     }
 
     // Fetch check-outs
@@ -2937,17 +3025,17 @@ async function fetchCheckInOutData() {
     const checkOutsData = await checkOutsResponse.json();
 
     if (checkOutsData.success) {
-      console.log("Check-outs from database:", checkOutsData.data);
+      // console.log("Check-outs from database:", checkOutsData.data);
     }
     // Fetch same day check-outs
     const sameDayCheckOutsResponse = await fetch("/api/same-day-check-outs");
     const sameDayCheckOutsData = await sameDayCheckOutsResponse.json();
 
     if (sameDayCheckOutsData.success) {
-      console.log(
-        "Same-day check-outs from database:",
-        sameDayCheckOutsData.data
-      );
+      // console.log(
+      //   "Same-day check-outs from database:",
+      //   sameDayCheckOutsData.data
+      // );
     }
     return {
       checkIns: checkInsData.data || [],
@@ -3032,7 +3120,7 @@ function loadConfettiScript(callback) {
   script.src =
     "https://cdn.jsdelivr.net/npm/confetti-js@0.0.18/dist/index.min.js";
   script.onload = () => {
-    console.log("Confetti script loaded successfully");
+    // console.log("Confetti script loaded successfully");
     callback();
   };
   script.onerror = () => {
@@ -3094,7 +3182,7 @@ function loadConfettiScript(callback) {
   script.src =
     "https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js";
   script.onload = () => {
-    console.log("Confetti script loaded successfully");
+    // console.log("Confetti script loaded successfully");
     callback();
   };
   script.onerror = () => {
@@ -3191,7 +3279,7 @@ function handleSameDayCheckOut(reservation) {
       );
 
       if (sameDayCheckOutField) {
-        console.log("Value:", sameDayCheckOutField.value);
+        // console.log("Value:", sameDayCheckOutField.value);
 
         // Store the same-day check-out status in localStorage
         const sameDayStatus =
@@ -3224,7 +3312,7 @@ function handleSameDayCheckOut(reservation) {
           }
         }
       } else {
-        console.log("Same Day Check-Out Field not found.");
+        // console.log("Same Day Check-Out Field not found.");
         // Store unknown status
         localStorage.setItem(
           `sameDayCheckOut_${reservationId}`,
@@ -3770,7 +3858,7 @@ async function fetchCheckInOutData() {
     const checkInsData = await checkInsResponse.json();
 
     if (checkInsData.success) {
-      console.log("Check-ins from database:", checkInsData.data);
+      // console.log("Check-ins from database:", checkInsData.data);
     }
 
     // Fetch check-outs
@@ -3778,17 +3866,17 @@ async function fetchCheckInOutData() {
     const checkOutsData = await checkOutsResponse.json();
 
     if (checkOutsData.success) {
-      console.log("Check-outs from database:", checkOutsData.data);
+      // console.log("Check-outs from database:", checkOutsData.data);
     }
     // Fetch same day check-outs
     const sameDayCheckOutsResponse = await fetch("/api/same-day-check-outs");
     const sameDayCheckOutsData = await sameDayCheckOutsResponse.json();
 
     if (sameDayCheckOutsData.success) {
-      console.log(
-        "Same-day check-outs from database:",
-        sameDayCheckOutsData.data
-      );
+      // console.log(
+      //   "Same-day check-outs from database:",
+      //   sameDayCheckOutsData.data
+      // );
     }
     return {
       checkIns: checkInsData.data || [],
@@ -3873,7 +3961,7 @@ function loadConfettiScript(callback) {
   script.src =
     "https://cdn.jsdelivr.net/npm/confetti-js@0.0.18/dist/index.min.js";
   script.onload = () => {
-    console.log("Confetti script loaded successfully");
+    // console.log("Confetti script loaded successfully");
     callback();
   };
   script.onerror = () => {
@@ -3935,7 +4023,7 @@ function loadConfettiScript(callback) {
   script.src =
     "https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js";
   script.onload = () => {
-    console.log("Confetti script loaded successfully");
+    // console.log("Confetti script loaded successfully");
     callback();
   };
   script.onerror = () => {
@@ -4008,4 +4096,158 @@ function launchConfettiCelebration() {
       console.error("Error initializing confetti:", error);
     }
   });
+}
+
+const tbody = document.getElementById("damageTableBody");
+const sampleData = [
+  {
+    name: "Three Seat Sofa (Burn&Damage)",
+    price: "10,000",
+    status: "pending",
+  },
+  {
+    name: "Two Seat Sofa (Burn&Damage)",
+    price: "8,000",
+    status: "pending",
+  },
+  { name: "Round Glass Table", price: "5,000", status: "pending" },
+  { name: "Chair (Burn&Damage)", price: "3,000", status: "pending" },
+  { name: "Side Table (Burn&Damage)", price: "3,000", status: "pending" },
+  {
+    name: "Dinning Table (Burn&Damage)",
+    price: "10,000",
+    status: "pending",
+  },
+  { name: "Chair Each (Burn&Damage)", price: "5,000", status: "pending" },
+  {
+    name: "Enterance Console (Burn&Damage)",
+    price: "3,000",
+    status: "pending",
+  },
+  { name: "Lamp(each) (Burn&Damage)", price: "8,000", status: "pending" },
+  {
+    name: "Medium Painting (Burn&Damage)",
+    price: "4,000",
+    status: "pending",
+  },
+  {
+    name: "Large Painting (Burn&Damage)",
+    price: "7,000",
+    status: "pending",
+  },
+  { name: "Ash Tray", price: "500", status: "pending" },
+  {
+    name: "Demy Book (Décor Item)(Burn&Damage)",
+    price: "1,000",
+    status: "pending",
+  },
+  { name: "Ceramic Vase", price: "3,000", status: "pending" },
+  { name: "Glass Vase", price: "2,000", status: "pending" },
+  {
+    name: "Window Curtain With Hanging Belt (Burn&Damage)",
+    price: "5,000",
+    status: "pending",
+  },
+  {
+    name: "Carpet Rug Large (5x7)(Burn&Damage)",
+    price: "25,000",
+    status: "pending",
+  },
+  {
+    name: "Carpet Rug Medium(4x6)(Burn&Damage)",
+    price: "15,000",
+    status: "pending",
+  },
+  { name: "Bedsheet(Burn&Damage)", price: "2,000", status: "pending" },
+  {
+    name: "Pillow Cover(Burn&Damage)",
+    price: "1,000",
+    status: "pending",
+  },
+  { name: "Duvet Cover(Burn&Damage)", price: "4,000", status: "pending" },
+  { name: "Cushion(Burn&Damage)", price: "1,500", status: "pending" },
+  { name: "Slippers Pair", price: "1,000", status: "pending" },
+  { name: "Toilet Basket", price: "1,000", status: "pending" },
+  { name: "Towel (Burn&Damage)", price: "1,500", status: "pending" },
+  { name: "Mattress(Burn&Damage)", price: "25,000", status: "pending" },
+  { name: "TCL 4K HDR LED 50INCHS", price: "110,000", status: "pending" },
+  {
+    name: "Haier Refrigerator (Damage)",
+    price: "25,000",
+    status: "pending",
+  },
+  { name: "Microwave Oven (Damage)", price: "7,000", status: "pending" },
+  {
+    name: "Anex Electrical Kettle 4042 (Damage)",
+    price: "3,000",
+    status: "pending",
+  },
+  {
+    name: "Anex Hotplate 6062 (Damage)",
+    price: "6,000",
+    status: "pending",
+  },
+  { name: "Glass each (Damage)", price: "200", status: "pending" },
+  { name: "Water Jug (Damage)", price: "600", status: "pending" },
+  { name: "Cup with saucers (Damage)", price: "400", status: "pending" },
+  { name: "Cooking pot (Damage)", price: "4,000", status: "pending" },
+  { name: "Cooking pan (Damage)", price: "4,000", status: "pending" },
+  { name: "Frying Pan (Damage)", price: "4,000", status: "pending" },
+  { name: "Rice Dish (Damage)", price: "1,000", status: "pending" },
+  { name: "Bowl (Damage)", price: "1,500", status: "pending" },
+  { name: "Soup Plates (Damage)", price: "500", status: "pending" },
+  { name: "Dinner Plates (Damage)", price: "700", status: "pending" },
+  { name: "Cooking Spoon (Damage)", price: "600", status: "pending" },
+  { name: "Table spoon (Damage) each", price: "300", status: "pending" },
+  { name: "Tea Spoon (Damage)", price: "200", status: "pending" },
+  { name: "Table Fork (Damage)", price: "300", status: "pending" },
+  { name: "Knife (Damage)", price: "500", status: "pending" },
+  { name: "Tea Strainer (Damage)", price: "500", status: "pending" },
+  {
+    name: "Max Liquid Dishwasher (Missing)",
+    price: "400",
+    status: "pending",
+  },
+  { name: "Max Scrub (Missing)", price: "150", status: "pending" },
+  { name: "Looking Mirror", price: "9,000", status: "pending" },
+];
+
+// Split data into two columns
+const half = Math.ceil(sampleData.length / 2);
+const firstHalf = sampleData.slice(0, half);
+const secondHalf = sampleData.slice(half);
+
+// Add rows with two items each
+const maxRows = Math.max(firstHalf.length, secondHalf.length);
+for (let i = 0; i < maxRows; i++) {
+  const row = document.createElement("tr");
+
+  // First column item
+  if (i < firstHalf.length) {
+    const item1 = firstHalf[i];
+    row.innerHTML += `
+            <td>${i + 1}</td>
+            <td>${item1.name}</td>
+            <td><span class="status ${item1.status}">${item1.price}</span></td>
+          `;
+  } else {
+    row.innerHTML += "<td></td><td></td><td></td>";
+  }
+
+  // Spacer column
+  row.innerHTML += "<td></td>";
+
+  // Second column item
+  if (i < secondHalf.length) {
+    const item2 = secondHalf[i];
+    row.innerHTML += `
+            <td>${i + half + 1}</td>
+            <td>${item2.name}</td>
+            <td><span class="status ${item2.status}">${item2.price}</span></td>
+          `;
+  } else {
+    row.innerHTML += "<td></td><td></td><td></td>";
+  }
+
+  tbody.appendChild(row);
 }

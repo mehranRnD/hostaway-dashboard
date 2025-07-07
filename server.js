@@ -367,6 +367,113 @@ app.get("/api/same-day-check-outs", async (req, res) => {
   }
 });
 
+// Early check-out route
+app.post("/api/early-check-outs", async (req, res) => {
+  try {
+    const { reservationId } = req.body;
+
+    // Validate required field
+    if (!reservationId) {
+      return res.status(400).json({
+        success: false,
+        message: "reservationId is required",
+      });
+    }
+
+    // Check if early check-out already exists for this reservation
+    const existingEarlyCheckOut = await EarlyCheckOut.findOne({
+      reservationId,
+    });
+    if (existingEarlyCheckOut) {
+      return res.status(409).json({
+        success: false,
+        message: "Early check-out already recorded for this reservation",
+      });
+    }
+
+    // Create new early check-out record with all required fields
+    const earlyCheckOut = new EarlyCheckOut({
+      reservationId,
+      checkOutTime: req.body.checkOutTime || new Date(),
+      guestName: req.body.guestName || "Unknown Guest",
+      arrivalDate:
+        req.body.arrivalDate || new Date().toISOString().split("T")[0],
+      departureDate:
+        req.body.departureDate ||
+        new Date(Date.now() + 86400000).toISOString().split("T")[0], // Default to tomorrow
+      nights: req.body.nights || 0,
+      listingName: req.body.listingName || "Unknown Listing",
+      listingMapId: req.body.listingMapId || "unknown",
+    });
+
+    await earlyCheckOut.save();
+
+    // Format dates in response
+    const formattedEarlyCheckOut = {
+      ...earlyCheckOut._doc,
+      checkOutTime: formatDate(earlyCheckOut.checkOutTime),
+    };
+
+    res.status(201).json({
+      success: true,
+      message: "Early check-out recorded successfully",
+      data: formattedEarlyCheckOut,
+    });
+  } catch (error) {
+    console.error("Error saving early check-out:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to record early check-out",
+      error: error.message,
+    });
+  }
+});
+
+app.get("/api/early-check-outs", async (req, res) => {
+  try {
+    const earlyCheckOuts = await EarlyCheckOut.find({}).sort({
+      checkOutTime: -1,
+    });
+
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date().toISOString().split("T")[0];
+
+    // Format dates in response
+    const formattedEarlyCheckOuts = earlyCheckOuts.map((checkOut) => {
+      // Check if arrivalDate is NOT today's date
+      if (checkOut.arrivalDate !== today) {
+        console.log("Early check-out with non-today arrivalDate:", {
+          reservationId: checkOut.reservationId,
+          guestName: checkOut.guestName,
+          arrivalDate: checkOut.arrivalDate,
+          departureDate: checkOut.departureDate,
+          listingName: checkOut.listingName,
+        });
+      }
+
+      return {
+        ...checkOut._doc,
+        checkOutTime: formatDate(checkOut.checkOutTime),
+      };
+    });
+
+    // Delete records with arrivalDate NOT equal to today's date
+    await EarlyCheckOut.deleteMany({ arrivalDate: { $ne: today } });
+
+    res.status(200).json({
+      success: true,
+      data: formattedEarlyCheckOuts,
+    });
+  } catch (error) {
+    console.error("Error fetching early check-outs:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch early check-outs",
+      error: error.message,
+    });
+  }
+});
+
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });

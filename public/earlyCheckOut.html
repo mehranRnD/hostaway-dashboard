@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reservations Data</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+      position: sticky;
+      top: 0;
+    }
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    .loading {
+      padding: 20px;
+      text-align: center;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Reservations Data</h1>
+    <div id="loading" class="loading">Loading reservations data...</div>
+    <div id="reservations-container" style="display: none;">
+      <table id="reservations-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Guest Name</th>
+            <th>Arrival Date</th>
+            <th>Departure Date</th>
+            <th>Status</th>
+            <th>Early Check-out</th>
+          </tr>
+        </thead>
+        <tbody id="reservations-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="earlyCheckOut.js"></script>
+  <script>
+    document.addEventListener('reservationsLoaded', (event) => {
+      const reservations = event.detail;
+      const container = document.getElementById('reservations-container');
+      const loading = document.getElementById('loading');
+      const tbody = document.getElementById('reservations-body');
+
+      loading.style.display = 'none';
+      container.style.display = 'block';
+
+      reservations.forEach(reservation => {
+        const row = document.createElement('tr');
+
+        row.innerHTML = `
+<td>${
+  reservation.id
+    ? `<a href="https://dashboard.hostaway.com/v3/reservations/${reservation.id}" target="_blank" style="color: #235ed5; text-decoration: none; font-weight: 500;">${reservation.id}</a>`
+    : 'N/A'
+}</td>
+          <td>${reservation.guestName || 'N/A'}</td>
+          <td>${reservation.arrivalDate ? new Date(reservation.arrivalDate).toLocaleDateString() : 'N/A'}</td>
+          <td>${reservation.departureDate ? new Date(reservation.departureDate).toLocaleDateString() : 'N/A'}</td>
+          <td>${reservation.status || 'N/A'}</td>
+          <td>${reservation.earlyCheckOut || 'N/A'}</td>
+        `;
+
+        tbody.appendChild(row);
+      });
+
+      console.log('Reservations data:', reservations);
+    });
+
+    window.addEventListener('error', (error) => {
+      const loading = document.getElementById('loading');
+      loading.textContent = 'Error loading data. Please check the console for details.';
+      console.error('Error:', error);
+    });
+  </script>
+</body>
+</html>
