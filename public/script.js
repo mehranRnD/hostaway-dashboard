@@ -29,16 +29,28 @@ const listings = [
   { listingId: 323227, listingName: "4F-42 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 410263, listingName: "4F-44 (S)", listingType: "Studio" },
   { listingId: 323229, listingName: "1F-10 (A) (S)", listingType: "Studio" },
-  { listingId: 323258, listingName: "1F-10 (B) (1B)", listingType: "1 Bed Room" },
+  {
+    listingId: 323258,
+    listingName: "1F-10 (B) (1B)",
+    listingType: "1 Bed Room",
+  },
   { listingId: 323261, listingName: "1F-10 (C) (S)", listingType: "Studio" },
   { listingId: 336255, listingName: "8F-80 (S)", listingType: "Studio" },
   { listingId: 378076, listingName: "6F-60 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 378078, listingName: "6F-57 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 383744, listingName: "5F-53 (1B)", listingType: "1 Bed Room" },
-  { listingId: 387834, listingName: "Upper Crest (1B) UAE", listingType: "1 Bed Room" },
+  {
+    listingId: 387834,
+    listingName: "Upper Crest (1B) UAE",
+    listingType: "1 Bed Room",
+  },
   { listingId: 389366, listingName: "1F-13 (3B)", listingType: "3 Bed Room" },
   { listingId: 392230, listingName: "Arch Tower", listingType: "Studio" },
-  { listingId: 387833, listingName: "2101 Bay's Edge", listingType: "1 Bed Room" },
+  {
+    listingId: 387833,
+    listingName: "2101 Bay's Edge",
+    listingType: "1 Bed Room",
+  },
   { listingId: 395345, listingName: "9F-83 (2B)", listingType: "2 Bed Room" },
   { listingId: 400763, listingName: "4F-37 (1B)", listingType: "1 Bed Room" },
   { listingId: 400779, listingName: "8f-77 (2B)", listingType: "2 Bed Rooms" },
@@ -314,6 +326,18 @@ function displayReservations(reservations) {
       container.appendChild(card);
     });
   });
+if (earlyCheckOutCache.length > 0) {
+  const expectedCheckOutsList = document.getElementById(
+    "expectedCheckOutsList"
+  );
+
+  // Reverse to maintain correct order on prepend
+  const earlyReservations = [...earlyCheckOutCache].reverse();
+  earlyReservations.forEach((reservation) => {
+    const card = createReservationCard(reservation, "expectedCheckOuts");
+    expectedCheckOutsList.prepend(card);
+  });
+}
 
   // Update the count display
   const todayCheckInsCount = document.getElementById("todayCheckInsCount");
@@ -439,7 +463,7 @@ function createReservationCard(reservation, sectionType) {
       <span class="reservation-id">
   ${
     reservation.hostawayReservationId
-      ? `Reservation ID: <a href="https://dashboard.hostaway.com/v3/reservations/${reservation.hostawayReservationId}" target="_blank" style="color: #235ed5; text-decoration: none; font-weight: 500;">${reservation.hostawayReservationId}</a>`
+      ? `Reservation ID: <a href="https://dashboard.hostaway.com/v3/reservations/${reservation.hostawayReservationId}" target="_blank" style="color: #235ed5; font-weight: 500;">${reservation.hostawayReservationId}</a>`
       : "Reservation ID: Unknown ID"
   }
 </span>
@@ -1001,11 +1025,11 @@ function handleCheckOut(reservation) {
   const reservationCard = document.querySelector(
     `.reservation-card[data-res-id="${reservationId}"]`
   );
-if (!reservationCard) {
-  console.warn(
-    "Reservation card not found in DOM. Performing headless checkout."
-  );
-}
+  if (!reservationCard) {
+    console.warn(
+      "Reservation card not found in DOM. Performing headless checkout."
+    );
+  }
   const existingCheckOuts = JSON.parse(
     localStorage.getItem("actualCheckOuts") || "{}"
   );
@@ -1108,7 +1132,6 @@ if (!reservationCard) {
   }
 }
 
-
 const modal = document.getElementById("earlyCheckOutModal");
 const btn = document.getElementById("earlyCheckoutBtn");
 const span = modal.querySelector(".close");
@@ -1162,17 +1185,26 @@ document.addEventListener("reservationsLoaded", (event) => {
         };">${reservation.earlyCheckOut || "N/A"}</td>
         <td>
         <button 
-        class="check-out-btn"
-        data-res-id="${reservation.hostawayReservationId}"
-        data-reservation='${JSON.stringify(reservation).replace(/'/g, "\\'")}'
-        onclick="handleCheckOut(this)">
-        Mark Check Out
-        </button>     
+    class="check-out-btn"
+    data-res-id="${reservation.hostawayReservationId}"
+    data-reservation='${JSON.stringify(reservation).replace(/'/g, "\\'")}'
+    onclick="handleCheckOut(this);">
+    Mark Check Out
+</button>     
+        </td>
+        <td>
+        <button 
+    class="print-btn"
+    data-res-id="${reservation.hostawayReservationId}"
+    data-reservation='${JSON.stringify(reservation).replace(/'/g, "\\'")}'
+    onclick="handlePrint('${reservation.hostawayReservationId}', 'check-out')">
+    Print Check Out
+</button>
         </td>
       `;
 
     tbody.appendChild(row);
-  }); 
+  });
 });
 
 window.addEventListener("error", (error) => {
@@ -1181,10 +1213,6 @@ window.addEventListener("error", (error) => {
     "Error loading data. Please check the console for details.";
   console.error("Error:", error);
 });
-
-
-
-
 
 // Add event listener for check-in and check-out buttons
 document.addEventListener("DOMContentLoaded", () => {
@@ -1216,7 +1244,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // Handle check-out button
       else if (e.target.classList.contains("check-out-btn")) {
         e.preventDefault();
-e.stopPropagation();
+        e.stopPropagation();
         const reservationId = e.target.getAttribute("data-res-id");
         if (reservationId) {
           // Get the full reservation object from the card
@@ -3899,6 +3927,45 @@ document.addEventListener("DOMContentLoaded", () => {
 
   fetchAndDisplayTotalCheckIns(); // Add this line
   fetchAndDisplayTotalCheckOuts(); // Add this line to load check-outs
+});
+
+document.addEventListener("reservationsLoaded", (event) => {
+  const earlyCheckOutReservations = event.detail;
+
+  const expectedCheckOutsList = document.getElementById("expectedCheckOutsList");
+  if (!expectedCheckOutsList) return;
+
+  earlyCheckOutReservations.forEach((reservation) => {
+    const card = createReservationCard(reservation, "expectedCheckOuts");
+    expectedCheckOutsList.appendChild(card);
+  });
+
+  // Optional: update the counter
+  updateUI();
+});
+const earlyCheckOutCache = [];
+
+document.addEventListener("reservationsLoaded", (event) => {
+  const earlyCheckOutReservations = event.detail;
+  if (!earlyCheckOutReservations || !earlyCheckOutReservations.length) return;
+
+  // Store them in memory
+  earlyCheckOutReservations.forEach((res) => {
+    earlyCheckOutCache.push(res);
+  });
+
+  // Append them if the list is already present
+  const expectedCheckOutsList = document.getElementById(
+    "expectedCheckOutsList"
+  );
+  if (expectedCheckOutsList && expectedCheckOutsList.innerHTML.trim() !== "") {
+    earlyCheckOutReservations.forEach((reservation) => {
+      const card = createReservationCard(reservation, "expectedCheckOuts");
+      expectedCheckOutsList.appendChild(card);
+    });
+
+    updateUI();
+  }
 });
 
 function launchConfettiCelebration() {

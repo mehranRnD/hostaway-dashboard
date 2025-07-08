@@ -86,7 +86,6 @@ function filterReservations(allReservations) {
   });
 }
 
-
 /**
  * Fire reservation event to page
  */
@@ -183,16 +182,16 @@ async function fetchAllReservations() {
   }
 }
 // Add the event listener right here, after fetchAllReservations
-document.addEventListener('click', function(e) {
-  if (e.target && e.target.classList.contains('check-out-btn')) {
-    const reservationId = e.target.getAttribute('data-res-id');
+document.addEventListener("click", function (e) {
+  if (e.target && e.target.classList.contains("check-out-btn")) {
+    const reservationId = e.target.getAttribute("data-res-id");
     if (reservationId) {
       // Create a minimal reservation object with just the ID
       const reservation = {
-        hostawayReservationId: reservationId
+        hostawayReservationId: reservationId,
       };
       // Call the same handleCheckOut function used in the main app
-      if (typeof handleCheckOut === 'function') {
+      if (typeof handleCheckOut === "function") {
         handleCheckOut(reservation);
       }
     }
