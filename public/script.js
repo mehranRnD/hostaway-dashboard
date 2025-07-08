@@ -1183,7 +1183,7 @@ document.addEventListener("reservationsLoaded", (event) => {
         <td style="text-align: center; color: ${
           reservation.earlyCheckOut === "yes" ? "green" : "red"
         };">${reservation.earlyCheckOut || "N/A"}</td>
-        <td>
+       <!-- <td>
         <button 
     class="check-out-btn"
     data-res-id="${reservation.hostawayReservationId}"
@@ -1200,7 +1200,7 @@ document.addEventListener("reservationsLoaded", (event) => {
     onclick="handlePrint('${reservation.hostawayReservationId}', 'check-out')">
     Print Check Out
 </button>
-        </td>
+        </td> -->
       `;
 
     tbody.appendChild(row);
