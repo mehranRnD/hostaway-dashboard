@@ -29,28 +29,16 @@ const listings = [
   { listingId: 323227, listingName: "4F-42 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 410263, listingName: "4F-44 (S)", listingType: "Studio" },
   { listingId: 323229, listingName: "1F-10 (A) (S)", listingType: "Studio" },
-  {
-    listingId: 323258,
-    listingName: "1F-10 (B) (1B)",
-    listingType: "1 Bed Room",
-  },
+  { listingId: 323258, listingName: "1F-10 (B) (1B)", listingType: "1 Bed Room" },
   { listingId: 323261, listingName: "1F-10 (C) (S)", listingType: "Studio" },
   { listingId: 336255, listingName: "8F-80 (S)", listingType: "Studio" },
   { listingId: 378076, listingName: "6F-60 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 378078, listingName: "6F-57 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 383744, listingName: "5F-53 (1B)", listingType: "1 Bed Room" },
-  {
-    listingId: 387834,
-    listingName: "Upper Crest (1B) UAE",
-    listingType: "1 Bed Room",
-  },
+  { listingId: 387834, listingName: "Upper Crest (1B) UAE", listingType: "1 Bed Room" },
   { listingId: 389366, listingName: "1F-13 (3B)", listingType: "3 Bed Room" },
   { listingId: 392230, listingName: "Arch Tower", listingType: "Studio" },
-  {
-    listingId: 387833,
-    listingName: "2101 Bay's Edge",
-    listingType: "1 Bed Room",
-  },
+  { listingId: 387833, listingName: "2101 Bay's Edge", listingType: "1 Bed Room" },
   { listingId: 395345, listingName: "9F-83 (2B)", listingType: "2 Bed Room" },
   { listingId: 400763, listingName: "4F-37 (1B)", listingType: "1 Bed Room" },
   { listingId: 400779, listingName: "8f-77 (2B)", listingType: "2 Bed Rooms" },
@@ -1289,6 +1277,8 @@ async function handlePrint(reservationId, printType) {
   // Get the reservation object from the card's dataset
   const reservation = JSON.parse(card.dataset.reservation);
 
+  const currencyLabel = reservation.currency || "";
+
   // Get basic details
 
   const guestName = reservation.guestName || "";
@@ -2026,15 +2016,21 @@ async function handlePrint(reservationId, printType) {
     .charges-breakdown {
     margin: -15px 23px 0px 0px;
       padding: 15px;
-      text-align: right;
       display: inline-block;
       vertical-align: top;
     }
     .charges-breakdown p {
       margin: 5px 0;
-      font-size: 14px;
+      font-size: 12px;
       color: #333;
       line-height: 1.3;
+    }
+    .charges-breakdown h6 {
+      margin: 5px 0;
+      font-size: 16px;
+      color: #333;
+      line-height: 1.3;
+      font-family: math;
     }
     
     /* Container to hold both elements */
@@ -2103,6 +2099,7 @@ async function handlePrint(reservationId, printType) {
                 Actual Check-out Date / Time: ${actualCheckOutTime}
               </p>`;
     }
+    const currencyLabel = reservation.currency || "";
   })()}
    </div>
 </div>
@@ -2121,23 +2118,28 @@ async function handlePrint(reservationId, printType) {
     <div class="list-item">• Other valuables</div>
   </div>
   <div class="info-fields">
-    <div class="field-group">
-      <span class="field-label">Standard Check Out Date & Time:</span>
-      <span class="field-value">${departure} & ${checkOutTime} pm</span>
-    </div>
-    <div class="field-group">
-      <span class="field-label">Late Check out Charges (if applicable):</span>
-      <span class="field-value">${lateCheckOutCharges || "0"}</span>
-    </div>
-    <div class="field-group">
-      <span class="field-label">Any other Charges (if applicable):</span>
-      <span class="field-value">${allTotalCharges || "0"}</span>
-    </div>
-    <div class="field-group">
-      <span class="field-label">Security Deposit Amount Returned:</span>
-      <span class="field-value">${CheckOutSecurityDeposit || "0"}</span>
-    </div>
+  <div class="field-group">
+    <span class="field-label">Standard Check Out Date & Time:</span>
+    <span class="field-value">${departure} & ${checkOutTime} pm</span>
   </div>
+  <div class="field-group">
+    <span class="field-label">Late Check out Charges (if applicable):</span>
+    <span class="field-value">${
+      lateCheckOutCharges || "0"
+    } ${currencyLabel}</span>
+  </div>
+  <div class="field-group">
+    <span class="field-label">Any other Charges (if applicable):</span>
+    <span class="field-value">${allTotalCharges || "0"} ${currencyLabel}</span>
+  </div>
+  <div class="field-group">
+    <span class="field-label">Security Deposit Amount Returned:</span>
+    <span class="field-value">${
+      CheckOutSecurityDeposit || "0"
+    } ${currencyLabel}</span>
+  </div>
+</div>
+
 </div>
 
 <style>
@@ -2213,92 +2215,106 @@ async function handlePrint(reservationId, printType) {
     allTotalCharges > 0
       ? `
     <div class="charges-breakdown">
-      <p><strong>*Charges Breakdown:</strong></p>
+      <h6><strong>*Charges Breakdown:</strong></h6>
       ${
         financeFields.baseRate > 0
-          ? `<p>• Base Rate: ${financeFields.baseRate.toFixed(2)}</p>`
+          ? `<p>• <strong>Base Rate:</strong> ${financeFields.baseRate.toFixed(
+              2
+            )} ${currencyLabel}</p>`
           : ""
       }
       ${
         financeFields.cleaningFeeValue > 0
-          ? `<p>• Cleaning Fee: ${financeFields.cleaningFeeValue.toFixed(
+          ? `<p>• <strong>Cleaning Fee:</strong> ${financeFields.cleaningFeeValue.toFixed(
               2
-            )}</p>`
+            )} ${currencyLabel}</p>`
           : ""
       }
       ${
         financeFields.additionalCleaningFee > 0
-          ? `<p>• Additional Cleaning Fee: ${financeFields.additionalCleaningFee.toFixed(
+          ? `<p>• <strong>Cleaning Fee:</strong> ${financeFields.additionalCleaningFee.toFixed(
               2
-            )}</p>`
+            )} ${currencyLabel}</p>`
           : ""
       }
       ${
         financeFields.midstayCleaningFee > 0
-          ? `<p>• Midstay Cleaning Fee: ${financeFields.midstayCleaningFee.toFixed(
+          ? `<p>• <strong>Midstay Cleaning Fee:</strong> ${financeFields.midstayCleaningFee.toFixed(
               2
-            )}</p>`
+            )} ${currencyLabel}</p>`
           : ""
       }
      ${
        CheckOutDamageDeposit !== "0"
-         ? `<p>• Damage Deposit: ${CheckOutDamageDeposit}</p>`
+         ? `<p>• <strong>Damage Deposit:</strong> ${CheckOutDamageDeposit} ${currencyLabel}</p>`
          : ""
      }
 ${
   CheckOutSecurityDeposit !== "0"
-    ? `<p>• Security Deposit: ${CheckOutSecurityDeposit}</p>`
+    ? `<p>• <strong>Security Deposit:</strong> ${CheckOutSecurityDeposit} ${currencyLabel}</p>`
     : ""
 }
       ${
         financeFields.salesTax > 0
-          ? `<p>• Sales Tax: ${financeFields.salesTax.toFixed(2)}</p>`
+          ? `<p>• <strong>Sales Tax:</strong> ${financeFields.salesTax.toFixed(
+              2
+            )} ${currencyLabel}</p>`
           : ""
       }
       ${
         financeFields.earlyCheckinFee > 0
-          ? `<p>• Early Check-in Fee: ${financeFields.earlyCheckinFee.toFixed(
+          ? `<p>• <strong>Early Check-in Fee:</strong> ${financeFields.earlyCheckinFee.toFixed(
               2
-            )}</p>`
+            )} ${currencyLabel}</p>`
           : ""
       }
       ${
         financeFields.bedLinenFee > 0
-          ? `<p>• Bed Linen Fee: ${financeFields.bedLinenFee.toFixed(2)}</p>`
+          ? `<p>• <strong>Bed Linen Fee:</strong> ${financeFields.bedLinenFee.toFixed(
+              2
+            )} ${currencyLabel}</p>`
           : ""
       }
       ${
         financeFields.extraBedsFee > 0
-          ? `<p>• Extra Beds Fee: ${financeFields.extraBedsFee.toFixed(2)}</p>`
+          ? `<p>• <strong>Extra Beds Fee:</strong> ${financeFields.extraBedsFee.toFixed(
+              2
+            )} ${currencyLabel}</p>`
           : ""
       }
       ${
         financeFields.lateCheckoutFee > 0
-          ? `<p>• Late Checkout Fee: ${financeFields.lateCheckoutFee.toFixed(
+          ? `<p>• <strong>Late Checkout Fee:</strong> ${financeFields.lateCheckoutFee.toFixed(
               2
-            )}</p>`
+            )} ${currencyLabel}</p>`
           : ""
       }
       ${
         financeFields.damageDeposit > 0
-          ? `<p>• Damage Deposit: ${financeFields.damageDeposit.toFixed(2)}</p>`
+          ? `<p>• <strong>Damage Deposit:</strong> ${financeFields.damageDeposit.toFixed(
+              2
+            )} ${currencyLabel}</p>`
           : ""
       }
       ${
         financeFields.parkingFee > 0
-          ? `<p>• Parking Fee: ${financeFields.parkingFee.toFixed(2)}</p>`
+          ? `<p>• <strong>Parking Fee:</strong> ${financeFields.parkingFee.toFixed(
+              2
+            )} ${currencyLabel}</p>`
           : ""
       }
       ${
         financeFields.serviceFee > 0
-          ? `<p>• Service Fee: ${financeFields.serviceFee.toFixed(2)}</p>`
+          ? `<p>• <strong>Service Fee:</strong> ${financeFields.serviceFee.toFixed(
+              2
+            )}  ${currencyLabel}</p>`
           : ""
       }
       ${
         financeFields.towelChangeFee > 0
-          ? `<p>• Towel Change Fee: ${financeFields.towelChangeFee.toFixed(
+          ? `<p>• <strong>Towel Change Fee:</strong> ${financeFields.towelChangeFee.toFixed(
               2
-            )}</p>`
+            )} ${currencyLabel}</p>`
           : ""
       }
     </div>
