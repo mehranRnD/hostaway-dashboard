@@ -29,23 +29,34 @@ const listings = [
   { listingId: 323227, listingName: "4F-42 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 410263, listingName: "4F-44 (S)", listingType: "Studio" },
   { listingId: 323229, listingName: "1F-10 (A) (S)", listingType: "Studio" },
-  { listingId: 323258,listingName: "1F-10 (B) (1B)",listingType: "1 Bed Room",},
+  {
+    listingId: 323258,
+    listingName: "1F-10 (B) (1B)",
+    listingType: "1 Bed Room",
+  },
   { listingId: 323261, listingName: "1F-10 (C) (S)", listingType: "Studio" },
   { listingId: 336255, listingName: "8F-80 (S)", listingType: "Studio" },
   { listingId: 378076, listingName: "6F-60 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 378078, listingName: "6F-57 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 383744, listingName: "5F-53 (1B)", listingType: "1 Bed Room" },
-  { listingId: 387834,listingName: "Upper Crest (1B) UAE",listingType: "1 Bed Room",},
+  {
+    listingId: 387834,
+    listingName: "Upper Crest (1B) UAE",
+    listingType: "1 Bed Room",
+  },
   { listingId: 389366, listingName: "1F-13 (3B)", listingType: "3 Bed Room" },
   { listingId: 392230, listingName: "Arch Tower", listingType: "Studio" },
-  { listingId: 387833, listingName: "2101 Bay's Edge",listingType: "1 Bed Room",},
+  {
+    listingId: 387833,
+    listingName: "2101 Bay's Edge",
+    listingType: "1 Bed Room",
+  },
   { listingId: 395345, listingName: "9F-83 (2B)", listingType: "2 Bed Room" },
   { listingId: 400763, listingName: "4F-37 (1B)", listingType: "1 Bed Room" },
   { listingId: 400779, listingName: "8f-77 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 400769, listingName: "9f-86 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 413218, listingName: "GF-00 (S)", listingType: "Studio" },
   { listingId: 413015, listingName: "9f-87 (2B)", listingType: "2 Bed Rooms" },
-
 ];
 
 // Maps listingId to listing name
@@ -317,18 +328,18 @@ function displayReservations(reservations) {
       container.appendChild(card);
     });
   });
-if (earlyCheckOutCache.length > 0) {
-  const expectedCheckOutsList = document.getElementById(
-    "expectedCheckOutsList"
-  );
+  if (earlyCheckOutCache.length > 0) {
+    const expectedCheckOutsList = document.getElementById(
+      "expectedCheckOutsList"
+    );
 
-  // Reverse to maintain correct order on prepend
-  const earlyReservations = [...earlyCheckOutCache].reverse();
-  earlyReservations.forEach((reservation) => {
-    const card = createReservationCard(reservation, "expectedCheckOuts");
-    expectedCheckOutsList.prepend(card);
-  });
-}
+    // Reverse to maintain correct order on prepend
+    const earlyReservations = [...earlyCheckOutCache].reverse();
+    earlyReservations.forEach((reservation) => {
+      const card = createReservationCard(reservation, "expectedCheckOuts");
+      expectedCheckOutsList.prepend(card);
+    });
+  }
 
   // Update the count display
   const todayCheckInsCount = document.getElementById("todayCheckInsCount");
@@ -1462,7 +1473,7 @@ async function handlePrint(reservationId, printType) {
     const channelName = reservation.channelName || "";
     let convertedTotalPrice = reservation.totalPrice || "";
     const currency = reservation.currency || "";
-
+    console.log(currency);
     // Convert currency if it's USD or AED
     if (convertedTotalPrice) {
       try {
@@ -1504,7 +1515,7 @@ async function handlePrint(reservationId, printType) {
     const duration = reservation.nights || 1;
     // const pricePerNight = (finalPrice / duration).toFixed(2);
     const totalPrice = reservation.totalPrice;
-
+    const currencyLabel = reservation.currency || "";
     // Get dates
     const arrival = new Date(reservation.arrivalDate).toLocaleDateString();
     const departure = new Date(reservation.departureDate).toLocaleDateString();
@@ -1680,7 +1691,7 @@ async function handlePrint(reservationId, printType) {
     <div class="form-field"><label>Type:</label><div class="field-value">${listingType}</div></div>
     <div class="form-field"><label>Contact:</label><div class="field-value">${contact}</div></div>
     <div class="form-field"><label>Total Nights:</label><div class="field-value">${duration}</div></div>
-    <div class="form-field"><label>Total Amount:</label><div class="field-value">${totalPrice}</div></div>
+    <div class="form-field"><label>Total Amount:</label><div class="field-value">${totalPrice} ${currencyLabel}</div></div>
     <div class="form-field"><label>Early Check-in:</label><div class="field-value">${earlyCheckIn}</div></div>
     <div class="form-field"><label>Price/Night:</label><div class="field-value">${pricePerNight}</div></div>
     <div class="form-field"><label>Channel ID:</label><div class="field-value">${channelName}</div></div>
@@ -3923,7 +3934,9 @@ document.addEventListener("DOMContentLoaded", () => {
 document.addEventListener("reservationsLoaded", (event) => {
   const earlyCheckOutReservations = event.detail;
 
-  const expectedCheckOutsList = document.getElementById("expectedCheckOutsList");
+  const expectedCheckOutsList = document.getElementById(
+    "expectedCheckOutsList"
+  );
   if (!expectedCheckOutsList) return;
 
   earlyCheckOutReservations.forEach((reservation) => {
