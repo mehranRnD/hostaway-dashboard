@@ -2455,7 +2455,55 @@ function showError(message = "Error loading reservations") {
   error.style.display = "block";
   loading.style.display = "none";
 }
+function categorizeListings(listings) {
+  const categories = {
+    Studio: [],
+    "1BR": [],
+    "2BR": [],
+    "2BR Premium": [],
+    "3BR": [],
+  };
 
+  // Categorize listings based on their names
+  listings.forEach((listing) => {
+    const name = listing.internalListingName || "";
+    const id = listing.id;
+
+    if (name.toLowerCase().includes("studio") || name.includes("(S)")) {
+      categories["Studio"].push(id);
+    } else if (
+      name.includes("1B") ||
+      name.includes("1 B") ||
+      name.includes("1BR") ||
+      name.includes("1 BR")
+    ) {
+      categories["1BR"].push(id);
+    } else if (
+      name.includes("2B") ||
+      name.includes("2 B") ||
+      name.includes("2BR") ||
+      name.includes("2 BR")
+    ) {
+      if (name.toLowerCase().includes("premium")) {
+        categories["2BR Premium"].push(id);
+      } else {
+        categories["2BR"].push(id);
+      }
+    } else if (
+      name.includes("3B") ||
+      name.includes("3 B") ||
+      name.includes("3BR") ||
+      name.includes("3 BR")
+    ) {
+      categories["3BR"].push(id);
+    } else {
+      // Default to 1BR if no clear category
+      categories["1BR"].push(id);
+    }
+  });
+
+  return categories;
+}
 async function fetchAndDisplayListings() {
   const LISTINGS_DATA = {
     Studio: [288675, 288682, 288690, 323229, 323261, 336255, 383744],
@@ -2538,6 +2586,9 @@ async function fetchAndDisplayListings() {
     const available = validResults.filter(
       (entry) => entry.status === "available"
     ).length;
+    const blocked = validResults.filter(
+      (entry) => entry.status === "blocked"
+    ).length;
     const occupancyPercentage = total
       ? ((reserved / total) * 100).toFixed(1)
       : 0;
@@ -2552,6 +2603,7 @@ async function fetchAndDisplayListings() {
     const totalStat = document.getElementById("totalStat");
     const reservedStat = document.getElementById("reservedStat");
     const availableStat = document.getElementById("availableStat");
+    const blockedStat = document.getElementById("blockedStat");
     const occupancyStat = document.getElementById("occupancyStat");
 
     if (
@@ -2559,6 +2611,7 @@ async function fetchAndDisplayListings() {
       totalStat &&
       reservedStat &&
       availableStat &&
+      blockedStat &&
       occupancyStat
     ) {
       dateStat.querySelector(".value").innerHTML = todayStr;
@@ -2588,6 +2641,13 @@ async function fetchAndDisplayListings() {
       anime({
         targets: occupancyStat.querySelector(".value"),
         innerHTML: occupancyPercentage + "%",
+        round: 1,
+        easing: "easeOutExpo",
+        duration: 1200,
+      });
+      anime({
+        targets: blockedStat.querySelector(".value"),
+        innerHTML: blocked,
         round: 1,
         easing: "easeOutExpo",
         duration: 1200,
