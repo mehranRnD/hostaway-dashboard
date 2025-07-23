@@ -29,34 +29,22 @@ const listings = [
   { listingId: 323227, listingName: "4F-42 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 410263, listingName: "4F-44 (S)", listingType: "Studio" },
   { listingId: 323229, listingName: "1F-10 (A) (S)", listingType: "Studio" },
-  {
-    listingId: 323258,
-    listingName: "1F-10 (B) (1B)",
-    listingType: "1 Bed Room",
-  },
+  { listingId: 323258, listingName: "1F-10 (B) (1B)", listingType: "1 Bed Room" },
   { listingId: 323261, listingName: "1F-10 (C) (S)", listingType: "Studio" },
   { listingId: 336255, listingName: "8F-80 (S)", listingType: "Studio" },
   { listingId: 378076, listingName: "6F-60 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 378078, listingName: "6F-57 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 383744, listingName: "5F-53 (1B)", listingType: "1 Bed Room" },
-  {
-    listingId: 387834,
-    listingName: "Upper Crest (1B) UAE",
-    listingType: "1 Bed Room",
-  },
-  { listingId: 389366, listingName: "1F-13 (3B)", listingType: "3 Bed Room" },
+  { listingId: 387834, listingName: "Upper Crest (1B) UAE", listingType: "1 Bed Room" },
+  { listingId: 389366, listingName: "1F-13 (3B)", listingType: "3 Bed Rooms" },
   { listingId: 392230, listingName: "Arch Tower", listingType: "Studio" },
-  {
-    listingId: 387833,
-    listingName: "2101 Bay's Edge",
-    listingType: "1 Bed Room",
-  },
-  { listingId: 395345, listingName: "9F-83 (2B)", listingType: "2 Bed Room" },
+  { listingId: 387833, listingName: "2101 Bay's Edge", listingType: "1 Bed Room" },
+  { listingId: 395345, listingName: "9F-83 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 400763, listingName: "4F-37 (1B)", listingType: "1 Bed Room" },
-  { listingId: 400779, listingName: "8f-77 (2B)", listingType: "2 Bed Rooms" },
-  { listingId: 400769, listingName: "9f-86 (2B)", listingType: "2 Bed Rooms" },
+  { listingId: 400779, listingName: "8f-77 (2B)", listingType: "2 Bed Room" },
+  { listingId: 400769, listingName: "9f-86 (2B)", listingType: "2 Bed Room" },
   { listingId: 413218, listingName: "GF-00 (S)", listingType: "Studio" },
-  { listingId: 414090, listingName: "9f-87 (2B)", listingType: "2 Bed Rooms" },
+  { listingId: 414090, listingName: "9f-87 (2B)", listingType: "2 Bed Room" },
 ];
 
 // Maps listingId to listing name
@@ -2506,17 +2494,19 @@ function categorizeListings(listings) {
 }
 async function fetchAndDisplayListings() {
   const LISTINGS_DATA = {
-    Studio: [288675, 288682, 288690, 323229, 323261, 336255, 383744],
+    Studio: [
+      288682, 288690, 323229, 323261, 336255, 383744, 410263, 413218, 392230,
+    ],
     "1BR": [
       307143, 306032, 288691, 305069, 288681, 288726, 288679, 288723, 288678,
-      323258,
+      323258, 400763, 387833, 387834,
     ],
     "2BR": [
-      288677, 288684, 288687, 288977, 288689, 288685, 288683, 306543, 288724,
-      378076, 378078,
+      288677, 288684, 288687, 288977, 288685, 288683, 306543, 288724, 378076,
+      378078, 400779, 400769, 395345, 414090,
     ],
     "2BR Premium": [305055, 309909, 323227, 288688],
-    "3BR": [288686, 305327, 288676],
+    "3BR": [288686, 305327, 288676, 389366],
   };
 
   try {
