@@ -1270,7 +1270,7 @@ body {
 .slack-icon {
   position: fixed;
   bottom: 20px;
-  right: -410px;
+  right: -390px;
   z-index: 1000;
 }
 

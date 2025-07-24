@@ -193,14 +193,14 @@
 
       <!-- Main Body Sections -->
       <div class="main-body">
-        <div class="section" id="actualCheckIns" style="margin-top: 20%;">
-          <h2 style="color: white;">Today's Processing Check-ins</h2>
+        <div class="section" id="actualCheckIns" style="margin-top: 20%">
+          <h2 style="color: white">Today's Processing Check-ins</h2>
           <div class="reservations-grid" id="actualCheckInsList">
             <!-- Actual check-ins will be added here -->
           </div>
         </div>
 
-        <div class="section" id="actualCheckOuts" style="margin-top: 20%;">
+        <div class="section" id="actualCheckOuts" style="margin-top: 20%">
           <h2 style="color: white">Today's Processing Check-outs</h2>
           <div class="reservations-grid" id="actualCheckOutsList">
             <!-- Actual check-outs will be added here -->
@@ -301,8 +301,7 @@
         </div>
       </div>
 
-      <div class="loading" id="loading" style="display: none">
-      </div>
+      <div class="loading" id="loading" style="display: none"></div>
 
       <div class="error" id="error" style="display: none">
         <div>Error loading reservations</div>
@@ -314,7 +313,18 @@
     </div>
 
     <!-- Slack Icon -->
+
     <div class="slack-icon">
+      <div>
+        <a style="margin-bottom: 15px" href="https://mail.google.com/chat/u/0/?redirect_pwa_promo=1#chat/space/AAQAkU7go5s" target="_blank" title="Open Google Chat">
+          <img
+            src="https://static1.anpoimages.com/wordpress/wp-content/uploads/2023/12/google-chat-logo.jpg?q=50&fit=crop&w=480&dpr=1.5"
+            alt="Google Chat"
+           
+          />
+          <span>Google Chat</span>
+        </a>
+      </div>
       <div>
         <a id="earlyCheckoutBtn" style="margin-bottom: 15px">
           <img
@@ -326,16 +336,17 @@
           <span>Early Check-out?</span>
         </a>
       </div>
-
-      <a href="https://namuve.slack.com/archives/C083M9C2Z8A" target="_blank">
-        <img
-          style="border-radius: 10px"
-          width="50px"
-          src="img/slack-logo.png"
-          alt="Slack"
-        />
-        <span>Got any query?</span>
-      </a>
+      <!-- <div>
+        <a href="https://namuve.slack.com/archives/C083M9C2Z8A" target="_blank">
+          <img
+            style="border-radius: 10px"
+            width="50px"
+            src="img/slack-logo.png"
+            alt="Slack"
+          />
+          <span>Got any query?</span>
+        </a>
+      </div> -->
     </div>
     <div id="earlyCheckOutModal" class="modal">
       <div class="modal-content">
