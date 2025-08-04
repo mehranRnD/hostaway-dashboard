@@ -868,6 +868,7 @@ function handleCheckIn(reservation) {
       Authorization: `Bearer ${API_TOKEN}`,
     },
     body: JSON.stringify({
+      guestName: guestName || "Guest Name",
       customFieldValues: [
         {
           customFieldId: 76281,
