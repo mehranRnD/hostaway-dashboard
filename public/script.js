@@ -794,11 +794,9 @@ function handleCheckIn(reservation) {
   );
   existingCheckIns[reservation.hostawayReservationId] = formattedDateTime;
   localStorage.setItem("actualCheckIns", JSON.stringify(existingCheckIns));
-
   // console.log(
   //   `Check-in marked for reservation ${reservation.hostawayReservationId} at: ${formattedDateTime}`
   // );
-
   // Store check-in in database
   fetch(`${SERVER_URL}/api/check-ins`, {
     method: "POST",
@@ -858,9 +856,7 @@ function handleCheckIn(reservation) {
         stack: error.stack,
       });
     });
-
   const apiUrl = `https://api.hostaway.com/v1/reservations/${reservation.hostawayReservationId}?forceOverbooking=1`;
-
   fetch(apiUrl, {
     method: "PUT",
     headers: {
@@ -886,15 +882,36 @@ function handleCheckIn(reservation) {
     .catch((error) => {
       console.error("Error updating reservation:", error);
     });
-
+  // Trigger Webhook on n8n
+  fetch("https://n8n.namuve.com/webhook/196e4e1e-4c7a-420b-8fe5-a3674403395b", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      reservation_id: reservation.hostawayReservationId,
+      guest_name: guestName || "Unknown Guest",
+      room_number: apartmentName || "Unknown Listing",
+      check_in_date: reservation.arrivalDate.split("T")[0],
+      actual_check_in_local: formattedDateTime, // :white_check_mark: Local format (matches Hostaway display)
+    }),
+  })
+    .then(async (response) => {
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to trigger Webhook");
+      }
+      console.log("Webhook triggered successfully:", data);
+    })
+    .catch((error) => {
+      console.error("Error triggering Webhook:", error);
+    });
   const expectedCheckInsList = document.querySelector("#expectedCheckInsList");
   const actualCheckInsList = document.querySelector("#actualCheckInsList");
-
   if (!expectedCheckInsList || !actualCheckInsList) {
     // console.error("Check-in lists not found");
     return;
   }
-
   if (reservationCard) {
     // Get or create actions container
     let actionsDiv = reservationCard.querySelector(".reservation-actions");
@@ -903,10 +920,8 @@ function handleCheckIn(reservation) {
       actionsDiv.className = "reservation-actions";
       reservationCard.appendChild(actionsDiv);
     }
-
     // Clear existing buttons to avoid duplicates
     actionsDiv.innerHTML = "";
-
     // Create Print Check-in button
     const printBtn = document.createElement("button");
     printBtn.className = "print-btn";
@@ -917,7 +932,6 @@ function handleCheckIn(reservation) {
       handlePrint(reservation.hostawayReservationId, "checkin");
     });
     actionsDiv.appendChild(printBtn);
-
     // Create Same Day Check-Out button
     const sameDayCheckOutBtn = document.createElement("button");
     sameDayCheckOutBtn.className = "same-day-checkout-btn";
@@ -930,7 +944,6 @@ function handleCheckIn(reservation) {
       handleSameDayCheckOut(reservation);
     });
     actionsDiv.appendChild(sameDayCheckOutBtn);
-
     // Create Early Check-Out button
     // const earlyCheckOutBtn = document.createElement("button");
     // earlyCheckOutBtn.className = "early-checkout-btn";
@@ -943,16 +956,13 @@ function handleCheckIn(reservation) {
     //   handleEarlyCheckOut(reservation);
     // });
     // actionsDiv.appendChild(earlyCheckOutBtn);
-
     // Move card to Actual Check-In section
     actualCheckInsList.appendChild(reservationCard);
-
     // Update the section type label if it exists
     const sectionTypeElement = reservationCard.querySelector(".section-type");
     if (sectionTypeElement) {
       sectionTypeElement.textContent = "Actual Check-in";
     }
-
     updateUI();
     fetchReservations();
   }
