@@ -856,32 +856,58 @@ function handleCheckIn(reservation) {
         stack: error.stack,
       });
     });
-  const apiUrl = `https://api.hostaway.com/v1/reservations/${reservation.hostawayReservationId}?forceOverbooking=1`;
-  fetch(apiUrl, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${API_TOKEN}`,
-    },
-    body: JSON.stringify({
-      guestName: guestName || "Guest Name",
-      customFieldValues: [
-        {
-          customFieldId: 76281,
-          value: formattedDateTime,
-        },
-      ],
-    }),
-  })
-    .then(() => {
-      // console.log(
-      //   "Check-in marked for reservation:",
-      //   reservation.hostawayReservationId
-      // );
+const getResUrl = `https://api.hostaway.com/v1/reservations/${reservation.hostawayReservationId}`;
+fetch(getResUrl, {
+  method: "GET",
+  headers: {
+    Authorization: `Bearer ${API_TOKEN}`,
+  },
+})
+  .then((response) => response.json())
+  .then((resData) => {
+    const existingField = resData.result?.customFieldValues?.find(
+      (field) =>
+        field.customFieldId === 76281 &&
+        field.value &&
+        field.value.trim() !== ""
+    );
+
+    if (existingField) {
+      console.log(`🛑 Check-in already recorded: ${existingField.value}`);
+      return; // ❌ Don't overwrite it
+    }
+
+    // ✅ Safe to send new check-in time
+    const apiUrl = `https://api.hostaway.com/v1/reservations/${reservation.hostawayReservationId}?forceOverbooking=1`;
+    fetch(apiUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${API_TOKEN}`,
+      },
+      body: JSON.stringify({
+        guestName: guestName || "Guest Name",
+        customFieldValues: [
+          {
+            customFieldId: 76281,
+            value: formattedDateTime,
+          },
+        ],
+      }),
     })
-    .catch((error) => {
-      console.error("Error updating reservation:", error);
-    });
+      .then(() => {
+        console.log(
+          `✅ Check-in time saved for ${reservation.hostawayReservationId}`
+        );
+      })
+      .catch((error) => {
+        console.error("Error updating reservation:", error);
+      });
+  })
+  .catch((error) => {
+    console.error("Error fetching reservation to check existing field:", error);
+  });
+
   // Trigger Webhook on n8n
   fetch("https://n8n.namuve.com/webhook/196e4e1e-4c7a-420b-8fe5-a3674403395b", {
     method: "POST",
@@ -1070,30 +1096,56 @@ function handleCheckOut(reservation) {
       console.error("Error saving check-out to database:", error);
     });
 
-  const apiUrl = `https://api.hostaway.com/v1/reservations/${reservationId}?forceOverbooking=1`;
-
-  fetch(apiUrl, {
-    method: "PUT",
+  const getResUrl = `https://api.hostaway.com/v1/reservations/${reservationId}`;
+  fetch(getResUrl, {
+    method: "GET",
     headers: {
-      "Content-Type": "application/json",
       Authorization: `Bearer ${API_TOKEN}`,
     },
-    body: JSON.stringify({
-      customFieldValues: [
-        {
-          customFieldId: 76282,
-          value: formattedDateTime,
-        },
-      ],
-    }),
   })
-    .then(() => {
-      // console.log(
-      //   "Check-out marked for reservation:",
-      //   reservation.hostawayReservationId
-      // );
+    .then((response) => response.json())
+    .then((resData) => {
+      const existingField = resData.result?.customFieldValues?.find(
+        (field) =>
+          field.customFieldId === 76282 &&
+          field.value &&
+          field.value.trim() !== ""
+      );
+
+      if (existingField) {
+        console.log(`🛑 Check-out already recorded: ${existingField.value}`);
+        return; // ❌ Skip updating
+      }
+
+      // ✅ No check-out recorded, proceed with update
+      const apiUrl = `https://api.hostaway.com/v1/reservations/${reservationId}?forceOverbooking=1`;
+      fetch(apiUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${API_TOKEN}`,
+        },
+        body: JSON.stringify({
+          customFieldValues: [
+            {
+              customFieldId: 76282,
+              value: formattedDateTime,
+            },
+          ],
+        }),
+      })
+        .then(() => {
+          console.log(`✅ Check-out time saved for ${reservationId}`);
+        })
+        .catch((err) => console.error("Error updating reservation:", err));
     })
-    .catch((err) => console.error("Hostaway error", err));
+    .catch((error) => {
+      console.error(
+        "Error fetching reservation to check existing check-out:",
+        error
+      );
+    });
+
 
   const actualCheckOutsList = document.querySelector("#actualCheckOutsList");
   const expectedCheckOutsList = document.querySelector(
