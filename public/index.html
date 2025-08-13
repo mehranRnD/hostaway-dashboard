@@ -19,13 +19,30 @@
         <div class="header-left">
           <img src="img/namuve.png" alt="namuve-logo" />
         </div>
+        <!-- Add Molgan font from CDN -->
+        <link href="https://fonts.cdnfonts.com/css/molgan" rel="stylesheet" />
+
+        <style>
+          .molgan-thin {
+            font-family: "Molgan", sans-serif;
+            font-weight: 100 !important;
+            letter-spacing: 0.5px !important;
+            -webkit-text-stroke: 0.3px transparent !important;
+          }
+        </style>
+
         <div class="header-center">
           <div class="text-container">
-            <h1>Namuve Dashboard</h1>
+            <h1 class="molgan-thin">Namuve Dashboard</h1>
           </div>
         </div>
+
         <div class="header-right">
-          <a href="https://namuve.com" style="color: rgb(24, 73, 236); text-decoration: none">Visit our website</a>
+          <a
+            href="https://namuve.com"
+            style="color: rgb(24, 73, 236); text-decoration: none"
+            >Visit our website</a
+          >
         </div>
 
         <div class="header-right">
@@ -100,7 +117,7 @@
       <!-- Top Dashboard Section -->
       <div class="stats-grid">
         <div class="stat-card" id="totalReservations">
-          <h2>Apartment Status</h2>
+          <h2 class="molgan-thin">Apartment Status</h2>
           <div style="display: none" class="value">0</div>
           <p style="text-align: center; margin: 30px 0px 30px 0px">
             Hover or click to see apartment status
@@ -150,13 +167,13 @@
           </div>
         </div>
         <div class="stat-card" id="occupancyGraph">
-          <h2>Today's Occupancy Graph</h2>
+          <h2 class="molgan-thin">Today's Occupancy Graph</h2>
           <div id="occupancyChart"></div>
           <!-- changed from <canvas> -->
         </div>
 
         <div class="stat-card" id="completedReservations">
-          <h2>Occupancy Percentage</h2>
+          <h2 class="molgan-thin">Occupancy Percentage</h2>
           <div class="stats-container">
             <!-- First row -->
             <div class="stat-group">
@@ -197,7 +214,7 @@
       <!-- Main Body Sections -->
       <div class="main-body">
         <div class="section" id="actualCheckIns" style="margin-top: 20%">
-          <h2 style="color: white">Today's Processing Check-ins</h2>
+          <h2  style="color: white">Today's Processing Check-ins</h2>
           <div class="reservations-grid" id="actualCheckInsList">
             <!-- Actual check-ins will be added here -->
           </div>
@@ -319,11 +336,15 @@
 
     <div class="slack-icon">
       <div>
-        <a style="margin-bottom: 15px" href="https://mail.google.com/chat/u/0/?redirect_pwa_promo=1#chat/space/AAQAkU7go5s" target="_blank" title="Open Google Chat">
+        <a
+          style="margin-bottom: 15px"
+          href="https://mail.google.com/chat/u/0/?redirect_pwa_promo=1#chat/space/AAQAkU7go5s"
+          target="_blank"
+          title="Open Google Chat"
+        >
           <img
             src="https://static1.anpoimages.com/wordpress/wp-content/uploads/2023/12/google-chat-logo.jpg?q=50&fit=crop&w=480&dpr=1.5"
             alt="Google Chat"
-           
           />
           <span>Google Chat</span>
         </a>
