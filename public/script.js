@@ -30,16 +30,28 @@ const listings = [
   { listingId: 323227, listingName: "4F-42 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 410263, listingName: "4F-44 (S)", listingType: "Studio" },
   { listingId: 323229, listingName: "1F-10 (A) (S)", listingType: "Studio" },
-  { listingId: 323258, listingName: "1F-10 (B) (1B)", listingType: "1 Bed Room" },
+  {
+    listingId: 323258,
+    listingName: "1F-10 (B) (1B)",
+    listingType: "1 Bed Room",
+  },
   { listingId: 323261, listingName: "1F-10 (C) (S)", listingType: "Studio" },
   { listingId: 336255, listingName: "8F-80 (S)", listingType: "Studio" },
   { listingId: 378076, listingName: "6F-60 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 378078, listingName: "6F-57 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 383744, listingName: "5F-53 (1B)", listingType: "1 Bed Room" },
-  { listingId: 387834, listingName: "Upper Crest (1B) UAE", listingType: "1 Bed Room" },
+  {
+    listingId: 387834,
+    listingName: "Upper Crest (1B) UAE",
+    listingType: "1 Bed Room",
+  },
   { listingId: 389366, listingName: "1F-13 (3B)", listingType: "3 Bed Rooms" },
   { listingId: 392230, listingName: "Arch Tower", listingType: "Studio" },
-  { listingId: 387833, listingName: "2101 Bay's Edge", listingType: "1 Bed Room" },
+  {
+    listingId: 387833,
+    listingName: "2101 Bay's Edge",
+    listingType: "1 Bed Room",
+  },
   { listingId: 395345, listingName: "9F-83 (2B)", listingType: "2 Bed Rooms" },
   { listingId: 400763, listingName: "4F-37 (1B)", listingType: "1 Bed Room" },
   { listingId: 400779, listingName: "8f-77 (2B)", listingType: "2 Bed Room" },
@@ -772,7 +784,6 @@ function handleEarlyCheckOut(reservation) {
       alert("Failed to fetch reservation details. Please try again.");
     });
 }
-
 
 function handleCheckIn(reservation) {
   const now = new Date();
@@ -1782,10 +1793,13 @@ async function handlePrint(reservationId, printType) {
                   <li>Anti-Social Behaviour and unethical activities are strictly prohibited.</li>
                   <li>Guests are requested to submit their CNIC at the time of check-in.</li>
                   <li>Guests are requested to check out before 12:00pm on the day of check-out.</li>
-                  <li>Guests will bear financial liability for any damage inside the apartment and building due to their fault/negligence.</li>
+                  <li><strong>Guests will bear financial liability for any damage inside the apartment and building due to their fault/negligence.</strong></li>
                   <li>Guests are requested to submit any complaints regarding the quality of services at the reception desk.</li>
                   <li>Money/Jewelry or other valuables brought to the property are at the guest's sole risk.</li>
-                </ul>
+                <p style="font-size: 13px;"><strong>Security deposit will be reimbursed back to you within 2-3
+working days after check out.</strong></p>
+                  </ul>
+                
                 <p style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     font-size: 13px;
     margin-bottom: 2px;
