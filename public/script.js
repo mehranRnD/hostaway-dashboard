@@ -1796,8 +1796,7 @@ async function handlePrint(reservationId, printType) {
                   <li><strong>Guests will bear financial liability for any damage inside the apartment and building due to their fault/negligence.</strong></li>
                   <li>Guests are requested to submit any complaints regarding the quality of services at the reception desk.</li>
                   <li>Money/Jewelry or other valuables brought to the property are at the guest's sole risk.</li>
-                <p style="font-size: 13px;"><strong>Security deposit will be reimbursed back to you within 2-3
-working days after check out.</strong></p>
+                <p style="font-size: 13px;"><strong>Your security deposit will be refunded within 2–3 working days after checkout.</strong></p>
                   </ul>
                 
                 <p style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
