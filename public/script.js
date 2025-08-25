@@ -2228,26 +2228,30 @@ async function handlePrint(reservationId, printType) {
   </div>
   <div class="info-fields">
   <div class="field-group">
-    <span class="field-label">Standard Check Out Date & Time:</span>
-    <span class="field-value">${departure} & ${checkOutTime} pm</span>
+    <span class="field-label">Vehicle Number:</span>
+    <span class="field-value">${vehicleNumber || "N/A"}</span>
   </div>
   <div class="field-group">
+    <span class="field-label">Standard Check Out Date & Time:</span>
+    <span class="field-value">${departure} & ${checkOutTime} pm</span>
+    </div>
+    <div class="field-group">
     <span class="field-label">Late Check out Charges (if applicable):</span>
     <span class="field-value">${
       lateCheckOutCharges || "0"
     } ${currencyLabel}</span>
-  </div>
-  <div class="field-group">
+   </div>
+   <div class="field-group">
     <span class="field-label">Any other Charges (if applicable):</span>
     <span class="field-value">${allTotalCharges || "0"} ${currencyLabel}</span>
-  </div>
-  <div class="field-group">
+   </div>
+   <div class="field-group">
     <span class="field-label">Security Deposit Amount Returned:</span>
     <span class="field-value">${
       CheckOutSecurityDeposit || "0"
     } ${currencyLabel}</span>
-  </div>
-</div>
+   </div>
+   </div>
 
 </div>
 
@@ -2276,7 +2280,7 @@ async function handlePrint(reservationId, printType) {
     flex-direction: column;
     gap: 10px;
     border: 1px solid black;
-    padding: 10px 0px 0px 15px;
+    padding: 10px 10px 10px 15px;
     margin: -8px 0px 10px 0px;
   }
 
@@ -2324,7 +2328,7 @@ async function handlePrint(reservationId, printType) {
     allTotalCharges > 0
       ? `
     <div class="charges-breakdown">
-      <h6><strong>*Charges Breakdown:</strong></h6>
+      <h6 style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">Charges Breakdown:</h6>
       ${
         financeFields.baseRate > 0
           ? `<p>• <strong>Base Rate:</strong> ${financeFields.baseRate.toFixed(
