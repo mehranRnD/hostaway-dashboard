@@ -936,7 +936,8 @@ function handleCheckIn(reservation) {
       guest_name: guestName || "Unknown Guest",
       room_number: apartmentName || "Unknown Listing",
       check_in_date: reservation.arrivalDate.split("T")[0],
-      actual_check_in_local: formattedDateTime, // :white_check_mark: Local format (matches Hostaway display)
+      actual_check_in_local: formattedDateTime, // ✅ Local format (matches Hostaway display)
+      event: "Checked-In", // Add your event type or details here
     }),
   })
     .then(async (response) => {
@@ -949,6 +950,7 @@ function handleCheckIn(reservation) {
     .catch((error) => {
       console.error("Error triggering Webhook:", error);
     });
+
   const expectedCheckInsList = document.querySelector("#expectedCheckInsList");
   const actualCheckInsList = document.querySelector("#actualCheckInsList");
   if (!expectedCheckInsList || !actualCheckInsList) {
@@ -1161,6 +1163,32 @@ function handleCheckOut(reservation) {
         "Error fetching reservation to check existing check-out:",
         error
       );
+    });
+
+  // Trigger Webhook on n8n
+  fetch("https://n8n.namuve.com/webhook/196e4e1e-4c7a-420b-8fe5-a3674403395b", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      reservation_id: reservation.hostawayReservationId,
+      guest_name: guestName || "Unknown Guest",
+      room_number: apartmentName || "Unknown Listing",
+      check_in_date: reservation.arrivalDate.split("T")[0],
+      actual_check_out_local: formattedDateTime, // Changed to reflect check-out
+      event: "Checked-Out", // Event type for check-out
+    }),
+  })
+    .then(async (response) => {
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to trigger Webhook");
+      }
+      console.log("Webhook triggered successfully:", data);
+    })
+    .catch((error) => {
+      console.error("Error triggering Webhook:", error);
     });
 
   const actualCheckOutsList = document.querySelector("#actualCheckOutsList");
