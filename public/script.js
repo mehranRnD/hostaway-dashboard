@@ -2008,20 +2008,31 @@ async function handlePrint(reservationId, printType) {
         const securityDepositEntry = financeFieldArray.find(
           (item) => item.alias === "Security Deposit"
         );
+        if (securityDepositEntry) {
+          console.log("Security Deposit Entry:", securityDepositEntry);
+
+          // Check if isDeleted is 1 or 0
+          if (securityDepositEntry.isDeleted === 1) {
+            console.log("isDeleted: 1 (this entry is deleted)");
+            CheckOutSecurityDeposit = 0; // 👈 Force it to 0
+          } else {
+            console.log("isDeleted: 0 (this entry is active)");
+            CheckOutSecurityDeposit = securityDepositEntry.value; // 👈 Use actual value
+          }
+        } else {
+          console.log("No Security Deposit entry found.");
+           CheckOutSecurityDeposit = 0;
+        }
         const damageDepositEntry = financeFieldArray.find(
           (item) => item.alias === "Damage Fee"
         );
-        if (securityDepositEntry) {
-          CheckOutSecurityDeposit = securityDepositEntry.value;
+        if (damageDepositEntry) {
+          console.log("Damage Deposit Entry:", damageDepositEntry);
+          CheckOutDamageDeposit = damageDepositEntry.value;
           // console.log("CheckOutSecurityDeposit:", CheckOutSecurityDeposit);
         } else {
-          // console.log("Security Deposit not found in finance fields");
-        }
-        if (damageDepositEntry) {
-          CheckOutDamageDeposit = damageDepositEntry.value;
-          // console.log("CheckOutDamageDeposit:", CheckOutDamageDeposit);
-        } else {
-          // console.log("Damage Deposit not found in finance fields");
+          console.log("No Damage Deposit entry found.");
+          CheckOutDamageDeposit = 0;
         }
       } else {
         console.error("Failed to fetch finance field data");
