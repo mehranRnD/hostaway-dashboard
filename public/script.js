@@ -1967,10 +1967,18 @@ async function handlePrint(reservationId, printType) {
         );
 
         if (lateCheckoutField) {
-          // console.log("Late Checkout Charges:", lateCheckoutField.value);
-          lateCheckOutCharges = lateCheckoutField.value;
+          console.log("Late Checkout Entry:", lateCheckoutField);
+
+          if (lateCheckoutField.isDeleted === 1) {
+            console.log("isDeleted: 1 (this entry is deleted)");
+            lateCheckOutCharges = 0;
+          } else {
+            console.log("isDeleted: 0 (this entry is active)");
+            lateCheckOutCharges = lateCheckoutField.value;
+          }
         } else {
-          // console.log("Late Checkout Charges not found.");
+          console.log("No Late Checkout entry found.");
+          lateCheckOutCharges = 0;
         }
       } else {
         // console.log("No custom field values found.");
@@ -2014,22 +2022,29 @@ async function handlePrint(reservationId, printType) {
           // Check if isDeleted is 1 or 0
           if (securityDepositEntry.isDeleted === 1) {
             console.log("isDeleted: 1 (this entry is deleted)");
-            CheckOutSecurityDeposit = 0; // 👈 Force it to 0
+            CheckOutSecurityDeposit = 0;
           } else {
             console.log("isDeleted: 0 (this entry is active)");
-            CheckOutSecurityDeposit = securityDepositEntry.value; // 👈 Use actual value
+            CheckOutSecurityDeposit = securityDepositEntry.value;
           }
         } else {
           console.log("No Security Deposit entry found.");
-           CheckOutSecurityDeposit = 0;
+          CheckOutSecurityDeposit = 0;
         }
         const damageDepositEntry = financeFieldArray.find(
           (item) => item.alias === "Damage Fee"
         );
+
         if (damageDepositEntry) {
           console.log("Damage Deposit Entry:", damageDepositEntry);
-          CheckOutDamageDeposit = damageDepositEntry.value;
-          // console.log("CheckOutSecurityDeposit:", CheckOutSecurityDeposit);
+
+          if (damageDepositEntry.isDeleted === 1) {
+            console.log("isDeleted: 1 (this entry is deleted)");
+            CheckOutDamageDeposit = 0;
+          } else {
+            console.log("isDeleted: 0 (this entry is active)");
+            CheckOutDamageDeposit = damageDepositEntry.value;
+          }
         } else {
           console.log("No Damage Deposit entry found.");
           CheckOutDamageDeposit = 0;
