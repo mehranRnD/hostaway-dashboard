@@ -1804,7 +1804,7 @@ async function handlePrint(reservationId, printType) {
   <div class="form-field"><label>Check-out Date:</label><div class="field-value">${departure}</div></div>
   <div class="form-field"><label>Check-out Time:</label><div class="field-value">${checkOutTime}</div></div>
   <div class="form-field"><label>Vehicle No:</label><div class="field-value">${vehicleNumber}</div></div>
-  <div class="form-field"><label>Security Deposit:</label><div class="field-value">${securityDepositFee}</div></div>
+  <div class="form-field"><label>Security Deposit:</label><div class="field-value">${securityDepositFee}    ☐ Cash / ☐ IBFT / ☐ Card</div></div>
 </div>
 </div>
 
