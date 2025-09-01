@@ -1699,7 +1699,7 @@ async function handlePrint(reservationId, printType) {
   white-space: pre-wrap; /* Ensures wrapping and respects line breaks */
   font-size: 11.5px;
   min-height: 16px;
-  font-family: inherit;
+  font-family: math;
 }
 
   /* To style readonly input fields consistently */
@@ -1718,15 +1718,17 @@ async function handlePrint(reservationId, printType) {
               width: calc(100% - 90px);
             }
             ul {
-              padding-top: 2px;
-              padding-bottom: 10px;
-            }
-            ul li {
-              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-              font-size: 11px;
-              line-height: 1.2;
-              margin-bottom: 2px;
-            }
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+ul li {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 11px;
+  line-height: 1;   /* slightly increased for readability */
+  margin-bottom: 6px; /* adds space between list items */
+}
+
             .space {
               padding: 8px !important;
             }
@@ -1767,7 +1769,7 @@ async function handlePrint(reservationId, printType) {
     Download
   </button>
 </div>
-<div style="display: flex; flex-direction: row; margin-top: 25px">
+<div style="display: flex; flex-direction: row; margin-top: 15px">
             <div class="logo-img"
             >
               <img
@@ -1788,7 +1790,7 @@ async function handlePrint(reservationId, printType) {
     <div class="form-field"><label>Type:</label><div class="field-value">${listingType}</div></div>
     <div class="form-field"><label>Contact:</label><div class="field-value">${contact}</div></div>
     <div class="form-field"><label>Total Nights:</label><div class="field-value">${duration}</div></div>
-    <div class="form-field"><label>Total Amount:</label><div class="field-value">${totalPrice} ${currencyLabel}</div></div>
+    <div class="form-field"><label>Total Amount:</label><div class="field-value">${totalPrice} ${currencyLabel} <br> ☐ Cash / ☐ IBFT / ☐ Card</div></div>
     <div class="form-field"><label>Early Check-in:</label><div class="field-value">${earlyCheckIn}</div></div>
     <div class="form-field"><label>Price/Night:</label><div class="field-value">${pricePerNight}</div></div>
     <div class="form-field"><label>Channel ID:</label><div class="field-value">${channelName}</div></div>
@@ -1803,7 +1805,7 @@ async function handlePrint(reservationId, printType) {
   <div class="form-field"><label>Check-in Time:</label><div class="field-value">${checkInTime}</div></div>
   <div class="form-field"><label>Check-out Date:</label><div class="field-value">${departure}</div></div>
   <div class="form-field"><label>Check-out Time:</label><div class="field-value">${checkOutTime}</div></div>
-  <div class="form-field"><label>Vehicle No:</label><div class="field-value">${vehicleNumber}</div></div>
+  <div class="form-field" ><label>Vehicle No:</label><div class="field-value" style="text-transform: uppercase;">${vehicleNumber}</div></div>
   <div class="form-field"><label>Security Deposit:</label><div class="field-value">${securityDepositFee}    ☐ Cash / ☐ IBFT / ☐ Card</div></div>
 </div>
 </div>
@@ -1814,20 +1816,20 @@ async function handlePrint(reservationId, printType) {
                 <h3 style="margin: -15px 0px -15px 0px; text-align: left">Terms and Conditions</h3>
                 <ul>
                   <li>Original CNIC or Passport is required at the time of Check-in.</li>
-                  <li>Only one car parking is allowed inside the building per apartment.</li>
+                  <li>Only one car parking is allowed inside the building, Extra vehicles will be charged accordingly.</li>
                   <li>Pets are not allowed.</li>
-                  <li>Rights of Admission reserved.</li>
                   <li>It is mandatory for guests to maintain a peaceful environment.</li>
                   <li>Anti-Social Behaviour and unethical activities are strictly prohibited.</li>
-                  <li>Guests are requested to submit their CNIC at the time of check-in.</li>
                   <li>Guests are requested to check out before 12:00pm on the day of check-out.</li>
                   <li><strong>Guests will bear financial liability for any damage inside the apartment and building due to their fault/negligence.</strong></li>
                   <li>Guests are requested to submit any complaints regarding the quality of services at the reception desk.</li>
                   <li>Money/Jewelry or other valuables brought to the property are at the guest's sole risk.</li>
-                <p style="font-size: 13px; text-align: center;"><strong>Your security deposit will be refunded within 2–3 working days after checkout.</strong></p>
                   </ul>
-                
-                <p style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+<p style="font-size: 13px; text-align: center; border: 1px solid #ccc; border-radius: 4px;">
+  <strong> Security deposit will be refunded within 2–3 working days, after your checkout</strong>
+</p>
+
+                <p style="font-family: 'Segoe UI', TTahoma, Geneva, Verdana, sans-serif;
     font-size: 13px;
     margin-bottom: 2px;
     text-align: center;">I have read and understand the terms and conditions and agree to them. <br> I will be responsible for any damage or loss to the property as per list attached.</p>
@@ -1854,7 +1856,7 @@ async function handlePrint(reservationId, printType) {
     justify-content: space-between;
     align-items: center;
     padding: 0px 5px 0px 4px;
-    margin-top: 25px;
+    margin-top: 40px;
     margin-right: -17px;
     margin-left: -17px;
     font-size: 12px;
@@ -2123,7 +2125,7 @@ async function handlePrint(reservationId, printType) {
     }
   
     .signature-section {
-      margin-top: 30px;
+      margin-top: 35px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -2188,7 +2190,7 @@ async function handlePrint(reservationId, printType) {
 
   <div class="form">
     <div style="position: absolute; top: 5px; right: 5px; z-index: 1000;">
-  <button onclick="downloadForm()" style="padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">
+  <button onclick="downloadForm()" class="download-btn">
     Download
   </button>
 </div>
@@ -2254,29 +2256,36 @@ async function handlePrint(reservationId, printType) {
   <div class="info-fields">
   <div class="field-group">
     <span class="field-label">Vehicle Number:</span>
-    <span class="field-value">${vehicleNumber || "N/A"}</span>
+    <span class="field-value" style="text-transform: uppercase;">${
+      vehicleNumber || "N/A"
+    }</span>
   </div>
+
   <div class="field-group">
     <span class="field-label">Standard Check Out Date & Time:</span>
     <span class="field-value">${departure} & ${checkOutTime} pm</span>
-    </div>
-    <div class="field-group">
+  </div>
+
+  <div class="field-group">
     <span class="field-label">Late Check out Charges (if applicable):</span>
     <span class="field-value">${
       lateCheckOutCharges || "0"
     } ${currencyLabel}</span>
-   </div>
-   <div class="field-group">
+  </div>
+
+  <div class="field-group">
     <span class="field-label">Any other Charges (if applicable):</span>
     <span class="field-value">${allTotalCharges || "0"} ${currencyLabel}</span>
-   </div>
-   <div class="field-group">
+  </div>
+
+  <div class="field-group">
     <span class="field-label">Security Deposit Amount Returned:</span>
     <span class="field-value">${
       CheckOutSecurityDeposit || "0"
     } ${currencyLabel}</span>
-   </div>
-   </div>
+  </div>
+</div>
+
 
 </div>
 
@@ -2284,7 +2293,7 @@ async function handlePrint(reservationId, printType) {
   .single-line-layout {
     display: flex;
     gap: 20px;
-    margin: 25px 0;
+    margin: 45px 0;
   }
 
   .items-list {
@@ -2330,7 +2339,7 @@ async function handlePrint(reservationId, printType) {
 
     <p style="font-size: 17px; text-align: center; margin-top: -15px;">
       I have found all of my belongings and have taken them with me. <br>
-       I understand that the Apartment management/host is not responsible for any valuables that are left behind.
+      I understand that the Apartment management/host is not responsible for any valuables that are left behind.
     </p>
 
     <div class="signature-section">
@@ -2461,7 +2470,7 @@ ${
   }
 </div>
 <div>
-<span style="margin-left: -19px;">✂----------------------------------------------------------------------------------------------------------
+<span style="margin-left: -19px;"> ✂----------------------------------------------------------------------------------------------------------
 </span>
 </div>
 <div>
@@ -2474,9 +2483,13 @@ ${
       }</p>
     </div>
     <div style="flex: 1;">
-      <p style="margin: 5px 0;"><strong>Vehicle Number:</strong> <br> ${
-        vehicleNumber || "N/A"
-      }</p>
+      <p style="margin: 5px 0;">
+  <strong>Vehicle Number:</strong> <br>
+  <span style="text-transform: uppercase;">
+    ${vehicleNumber || "N/A"}
+  </span>
+</p>
+
     </div>
   </div>
   <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
