@@ -2047,7 +2047,6 @@ async function handlePrint(reservationId, printType) {
           }
         } else {
           console.log("No Damage Deposit entry found.");
-          CheckOutDamageDeposit = 0;
         }
       } else {
         console.error("Failed to fetch finance field data");
