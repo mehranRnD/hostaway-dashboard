@@ -2284,7 +2284,7 @@ ul li {
     <span class="field-label">Security Deposit Amount Returned:</span>
     <span class="field-value">${
       CheckOutSecurityDeposit || "0"
-    } ${currencyLabel}</span>
+    } ${currencyLabel} <span style="font-weight: normal;">☐ Cash / ☐ IBFT / ☐ Card</span></span>
   </div>
 </div>
 
@@ -2316,7 +2316,7 @@ ul li {
     flex-direction: column;
     gap: 10px;
     border: 1px solid black;
-    padding: 10px 10px 10px 15px;
+    padding: 10px 5px 10px 15px;
     margin: -8px 0px 10px 0px;
   }
 
