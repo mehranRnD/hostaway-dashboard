@@ -2275,7 +2275,9 @@ ul li {
 
   <div class="field-group">
     <span class="field-label">Any other Charges (if applicable):</span>
-    <span class="field-value">${allTotalCharges || "0"} ${currencyLabel}</span>
+<span class="field-value">
+  ${allTotalCharges ? allTotalCharges.toFixed(2) : "0.00"} ${currencyLabel}
+</span>
   </div>
 
   <div class="field-group">
