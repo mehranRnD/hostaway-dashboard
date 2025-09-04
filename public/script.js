@@ -1384,7 +1384,10 @@ async function handlePrint(reservationId, printType) {
   // Get the reservation object from the card's dataset
   const reservation = JSON.parse(card.dataset.reservation);
 
-  const currencyLabel = reservation.currency || "";
+  const currencyLabel = "Pkr";
+  const hostawayChannelId = reservation.channelId || "";
+  // put this at the top of your template/script
+  
 
   // Get basic details
 
@@ -1696,7 +1699,6 @@ async function handlePrint(reservationId, printType) {
   border-bottom: 1px solid black;
   padding-bottom: 2px;
   word-break: break-word;
-  white-space: pre-wrap; /* Ensures wrapping and respects line breaks */
   font-size: 11.5px;
   min-height: 16px;
   font-family: math;
@@ -1790,8 +1792,14 @@ ul li {
     <div class="form-field"><label>Type:</label><div class="field-value">${listingType}</div></div>
     <div class="form-field"><label>Contact:</label><div class="field-value">${contact}</div></div>
     <div class="form-field"><label>Total Nights:</label><div class="field-value">${duration}</div></div>
-    <div class="form-field"><label>Total Amount:</label><div class="field-value">${totalPrice} ${currencyLabel} <br> ☐ Cash / ☐ IBFT / ☐ Card</div></div>
-    <div class="form-field"><label>Early Check-in:</label><div class="field-value">${earlyCheckIn}</div></div>
+<div class="form-field">
+  <label>Total Amount:</label>
+  <div class="field-value">
+    ${totalPrice} ${currencyLabel} 
+    ${currencyLabel === "USD" ? "" : "<br> ☐ Cash / ☐ IBFT / ☐ Card"}
+  </div>
+</div>
+    <div class="form-field"><label>Early Check-in:</label><div class="field-value">${earlyCheckIn} ${currencyLabel} </div></div>
     <div class="form-field"><label>Price/Night:</label><div class="field-value">${pricePerNight}</div></div>
     <div class="form-field"><label>Channel ID:</label><div class="field-value">${channelName}</div></div>
   </div>
@@ -1806,7 +1814,13 @@ ul li {
   <div class="form-field"><label>Check-out Date:</label><div class="field-value">${departure}</div></div>
   <div class="form-field"><label>Check-out Time:</label><div class="field-value">${checkOutTime}</div></div>
   <div class="form-field" ><label>Vehicle No:</label><div class="field-value" style="text-transform: uppercase;">${vehicleNumber}</div></div>
-  <div class="form-field"><label>Security Deposit:</label><div class="field-value">${securityDepositFee} <br> ☐ Cash / ☐ IBFT / ☐ Card</div></div>
+<div class="form-field">
+  <label>Security Deposit:</label>
+  <div class="field-value">
+    ${securityDepositFee} ${currencyLabel}
+    ${currencyLabel === "USD" ? "" : "<br> ☐ Cash / ☐ IBFT / ☐ Card"}
+  </div>
+</div>
 </div>
 </div>
 
@@ -1825,8 +1839,8 @@ ul li {
                   <li>Guests are requested to submit any complaints regarding the quality of services at the reception desk.</li>
                   <li>Money/Jewelry or other valuables brought to the property are at the guest's sole risk.</li>
                   </ul>
-<p style="font-size: 13px; text-align: center; border: 1px solid #ccc; border-radius: 4px;">
-  <strong> Security deposit will be refunded within 2–3 working days, after your checkout</strong>
+<p style="font-size: 13px; text-align: center;">
+  <strong> <u>Security deposit will be refunded within 2–3 working days, after your checkout.</u></strong>
 </p>
 
                 <p style="font-family: 'Segoe UI', TTahoma, Geneva, Verdana, sans-serif;
@@ -2235,7 +2249,6 @@ ul li {
                 Actual Check-out Date / Time: ${actualCheckOutTime}
               </p>`;
     }
-    const currencyLabel = reservation.currency || "";
   })()}
    </div>
 </div>
@@ -2267,25 +2280,30 @@ ul li {
   </div>
 
   <div class="field-group">
-    <span class="field-label">Late Check out Charges (if applicable):</span>
-    <span class="field-value">${
-      lateCheckOutCharges || "0"
-    } ${currencyLabel}</span>
-  </div>
+  <span class="field-label">Late Check out Charges (if applicable):</span>
+  <span class="field-value">
+    ${lateCheckOutCharges || "0"}
+    ${hostawayChannelId === "direct" ? currencyLabel : "Pkr"}
+  </span>
+</div>
 
-  <div class="field-group">
-    <span class="field-label">Any other Charges (if applicable):</span>
-<span class="field-value">
-  ${allTotalCharges ? allTotalCharges.toFixed(2) : "0.00"} ${currencyLabel}
-</span>
-  </div>
+<div class="field-group">
+  <span class="field-label">Any other Charges (if applicable):</span>
+  <span class="field-value">
+    ${allTotalCharges ? allTotalCharges.toFixed(2) : "0.00"}
+    ${hostawayChannelId === "direct" ? currencyLabel : "Pkr"}
+  </span>
+</div>
 
-  <div class="field-group">
-    <span class="field-label">Security Deposit Amount Returned:</span>
-    <span class="field-value">${
-      CheckOutSecurityDeposit || "0"
-    } ${currencyLabel} <span style="font-weight: normal;">☐ Cash / ☐ IBFT</span></span>
-  </div>
+<div class="field-group">
+  <span class="field-label">Security Deposit Amount Returned:</span>
+  <span class="field-value">
+    ${CheckOutSecurityDeposit || "0"}
+    ${hostawayChannelId === "direct" ? currencyLabel : "Pkr"}
+    <span style="font-weight: normal;">☐ Cash / ☐ IBFT</span>
+  </span>
+</div>
+
 </div>
 
 
