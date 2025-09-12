@@ -2290,7 +2290,7 @@ ul li {
 <div class="field-group">
   <span class="field-label">Any other Charges (if applicable):</span>
   <span class="field-value">
-    ${allTotalCharges ? allTotalCharges.toFixed(2) : "0.00"}
+   ${allTotalCharges ? Math.round(allTotalCharges) : "0"}
     ${hostawayChannelId === "direct" ? currencyLabel : "Pkr"}
   </span>
 </div>
